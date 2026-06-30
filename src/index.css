@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-content {
+  margin: 12px;
+  font-size: 14px;
+}
+
+.leaflet-control-container .leaflet-top,
+.leafet-control-container .leaflet-bottom {
+  z-index: 999;
+}
+
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  transition: transform 0.2s ease;
+}
+
+.leaflet-marker-icon:hover {
+  transform: scale(1.1);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
