@@ -17,7 +17,7 @@ from ultralytics import YOLO
 from yolo_utils import decode, letterbox
 
 ROOT = Path(__file__).resolve().parent.parent
-pt = YOLO(str(ROOT / "backend" / "routes" / "best.pt")).model.float().eval()
+pt = YOLO(str(ROOT / "backend" / "models" / "best.pt")).model.float().eval()
 sess = ort.InferenceSession(str(ROOT / "public" / "models" / "pothole-yolov8n-seg.onnx"),
                             providers=["CPUExecutionProvider"])
 

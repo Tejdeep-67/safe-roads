@@ -1,4 +1,4 @@
-"""Export backend/routes/best.pt to ONNX for the browser.
+"""Export backend/models/best.pt to ONNX for the browser.
 
 The checkpoint is a YOLOv8n-seg model with one class ("Pothole"), trained at 640.
 I export with dynamic height/width so the web app can pick the input size
@@ -13,7 +13,7 @@ from pathlib import Path
 from ultralytics import YOLO
 
 ROOT = Path(__file__).resolve().parent.parent
-WEIGHTS = ROOT / "backend" / "routes" / "best.pt"
+WEIGHTS = ROOT / "backend" / "models" / "best.pt"
 OUT = ROOT / "public" / "models" / "pothole-yolov8n-seg.onnx"
 
 model = YOLO(str(WEIGHTS))

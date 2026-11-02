@@ -1,6 +1,6 @@
 # Model
 
-The detector is `backend/routes/best.pt`, a **YOLOv8n-seg** model (3.26M parameters, one class: `Pothole`).
+The detector is `backend/models/best.pt`, a **YOLOv8n-seg** model (3.26M parameters, one class: `Pothole`).
 From the training arguments saved inside the checkpoint, it was fine-tuned from `yolov8n-seg.pt` at 640 px on the
 Kaggle *Pothole Image Segmentation Dataset* (Ultralytics 8.0.231, Jan 2024). I did not train these weights myself;
 this project is about putting the model to use (browser inference, tracking, map, route alerts).

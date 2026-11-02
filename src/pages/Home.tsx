@@ -9,7 +9,7 @@ import Footer from '../components/Footer';
 // real output of the model on this photo (model/evaluate.py style decode, conf 0.35)
 const HERO_BOXES = [
   { x1: 0.022, y1: 0.593, x2: 0.59, y2: 0.999, score: 0.94, sev: 'high' },
-  { x1: 0.161, y1: 0.25, x2: 0.438, y2: 0.347, score: 0.54, sev: 'medium' },
+  { x1: 0.161, y1: 0.25, x2: 0.438, y2: 0.347, score: 0.66, sev: 'medium' },
 ];
 
 function HeroVisual() {
