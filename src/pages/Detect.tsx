@@ -486,7 +486,7 @@ export default function Detect() {
 
           <div
             ref={stageRef}
-            className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/[.08] bg-asphalt-900 shadow-card"
+            className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border sm:aspect-video border-white/[.08] bg-asphalt-900 shadow-card"
           >
             <video
               ref={videoRef}
@@ -776,8 +776,10 @@ interface EmptyProps {
 
 function EmptyStage({ mode, ready, camError, onCamera, onDemoVideo, onVideoFile, onImageFile, onDemoImage }: EmptyProps) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 overflow-y-auto p-4 text-center">
+    <div className="absolute inset-0 overflow-y-auto text-center">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_60%_at_50%_40%,rgba(245,179,1,0.07),transparent)]" />
+      {/* min-h-full + justify-center keeps it centred but still scrollable when it doesn't fit */}
+      <div className="relative flex min-h-full flex-col items-center justify-center gap-3 p-4 sm:gap-4">
       {mode === 'camera' && (
         <>
           <Camera className="h-10 w-10 text-amber" />
@@ -821,7 +823,7 @@ function EmptyStage({ mode, ready, camError, onCamera, onDemoVideo, onVideoFile,
                 className="group relative overflow-hidden rounded-xl ring-1 ring-white/10 transition hover:ring-amber/60 disabled:opacity-50"
                 title={d.label}
               >
-                <img src={d.src} alt={d.label} className="h-16 w-24 object-cover transition duration-300 group-hover:scale-105 sm:h-20 sm:w-28" loading="lazy" />
+                <img src={d.src} alt={d.label} className="h-12 w-[4.5rem] object-cover transition duration-300 group-hover:scale-105 sm:h-20 sm:w-28" loading="lazy" />
               </button>
             ))}
           </div>
@@ -833,6 +835,7 @@ function EmptyStage({ mode, ready, camError, onCamera, onDemoVideo, onVideoFile,
           <p className="text-xs text-zinc-500">Photos with GPS data are placed on the map automatically.</p>
         </>
       )}
+      </div>
     </div>
   );
 }
