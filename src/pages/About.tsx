@@ -23,6 +23,7 @@ const credits = [
   ['Demo photo (street after rain)', 'Raammm10431, CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:BACHES_1.jpg'],
   ['Demo photo (road crack + pothole)', 'Dan crxs, CC BY 4.0', 'https://commons.wikimedia.org/wiki/File:Bache_mediano.jpg'],
   ['Demo photo (broken asphalt)', 'Anonymous, CC0', 'https://commons.wikimedia.org/wiki/File:Otro_bache.jpg'],
+  ['Demo video (trimmed)', 'Knowledge and philosophy, CC BY-SA 4.0', 'https://commons.wikimedia.org/wiki/File:Rainwater-Filled_Potholes_on_a_Community_Road.webm'],
   ['Test dataset', 'Potholes Detection (Roboflow Universe, project-ssayl), CC BY 4.0', 'https://universe.roboflow.com/project-ssayl/potholes-detection-d4rma'],
   ['Training data of the model', 'Pothole Image Segmentation Dataset (Kaggle)', 'https://www.kaggle.com/datasets/farzadnekouei/pothole-image-segmentation-dataset'],
   ['Map tiles', '© OpenStreetMap contributors (ODbL)', 'https://www.openstreetmap.org/copyright'],

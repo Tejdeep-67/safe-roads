@@ -19,7 +19,11 @@ const DEMO_IMAGES = [
   { src: '/demo/pothole-2.jpg', label: 'Street after rain' },
   { src: '/demo/pothole-3.jpg', label: 'Broken asphalt' },
 ];
-const DEMO_VIDEO = '/demo/road-demo.mp4';
+// VP9 webm where supported (smaller, works in every Chromium build), H.264 mp4 otherwise (Safari).
+const DEMO_VIDEO =
+  typeof document !== 'undefined' && document.createElement('video').canPlayType('video/webm; codecs="vp9"')
+    ? '/demo/road-demo.webm'
+    : '/demo/road-demo.mp4';
 
 interface Logged {
   id: number;
@@ -69,6 +73,7 @@ export default function Detect() {
   const trackerRef = useRef(new Tracker({ minHits: 3, maxMisses: 10 }));
   const runningRef = useRef(false);
   const lastDraw = useRef<{ items: DrawItem[]; w: number; h: number } | null>(null);
+  const retries = useRef(0);
   const times = useRef<number[]>([]);
   const geoRef = useRef<[number, number] | null>(null);
   const geoWatch = useRef<number | null>(null);
@@ -205,18 +210,21 @@ export default function Detect() {
       const v = videoRef.current;
       if (!v) return;
       const tracker = trackerRef.current;
+      retries.current = 0;
       tracker.onConfirm = (tr) => onConfirmed(tr, v, isCamera);
       runningRef.current = true;
       setRunning(true);
       let lastStats = 0;
 
       while (runningRef.current) {
-        if (v.readyState < 2) {
-          await new Promise((r) => setTimeout(r, 50));
+        if (v.readyState < 2 || v.seeking) {
+          await new Promise((r) => setTimeout(r, 30));
           continue;
         }
         if (!isCamera && v.ended) break;
-        const stepMode = !isCamera && settings.current.frameByFrame;
+        // frame stepping needs a seekable source; otherwise fall back to normal playback
+        const stepMode = !isCamera && settings.current.frameByFrame && v.seekable.length > 0;
+        if (!isCamera && !stepMode && v.paused && !v.ended) await v.play().catch(() => undefined);
         if (!stepMode && v.paused && !isCamera) {
           await new Promise((r) => setTimeout(r, 80));
           continue;
@@ -226,6 +234,7 @@ export default function Detect() {
           const t0 = performance.now();
           const res = await detector.detect(v, s.size, s.conf, s.masks);
           if (!runningRef.current) break;
+          retries.current = 0;
           const tracks = tracker.update(res.dets);
           const visible = tracks.filter((t) => t.misses === 0);
           lastDraw.current = {
@@ -257,6 +266,11 @@ export default function Detect() {
             await new Promise((r) => requestAnimationFrame(r));
           }
         } catch (e) {
+          // a frame can become unusable for a moment while the video is seeking; just try again
+          if ((e as Error).name === 'InvalidStateError' && retries.current++ < 20) {
+            await new Promise((r) => setTimeout(r, 50));
+            continue;
+          }
           console.error(e);
           toast(`Detection failed: ${(e as Error).message}`, 'error');
           break;
@@ -784,6 +798,13 @@ function EmptyStage({ mode, ready, camError, onCamera, onDemoVideo, onVideoFile,
               <input type="file" accept="video/*" className="sr-only" disabled={!ready} onChange={(e) => onVideoFile(e.target.files?.[0])} />
             </label>
           </div>
+          <p className="text-[11px] text-zinc-500">
+            Demo clip: “Rainwater-Filled Potholes on a Community Road” by Knowledge and philosophy,{' '}
+            <a className="underline hover:text-amber" href="https://commons.wikimedia.org/wiki/File:Rainwater-Filled_Potholes_on_a_Community_Road.webm" target="_blank" rel="noreferrer">
+              CC BY-SA 4.0
+            </a>
+            , trimmed.
+          </p>
         </>
       )}
       {mode === 'image' && (
