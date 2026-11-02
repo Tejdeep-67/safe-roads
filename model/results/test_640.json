@@ -9,5 +9,19 @@
   "precision@conf0.35": 0.676,
   "recall@conf0.35": 0.279,
   "f1": 0.395,
-  "cpu_ms_per_image_onnxruntime": 22.6
+  "cpu_ms_per_image_onnxruntime": 54.9,
+  "recall_by_size": {
+    "small_lt1pct": {
+      "potholes": 96,
+      "recall": 0.188
+    },
+    "medium_1to5pct": {
+      "potholes": 95,
+      "recall": 0.263
+    },
+    "large_gt5pct": {
+      "potholes": 78,
+      "recall": 0.41
+    }
+  }
 }

@@ -38,14 +38,18 @@ mAP, COCO-style 101-point AP. As a sanity check, `yolo val` with the same labels
 
 | input size | mAP@50 | mAP@50-95 | precision @0.35 | recall @0.35 | CPU ms / image* |
 |---|---|---|---|---|---|
-| 640 | 0.341 | 0.158 | 0.676 | 0.279 | 22.6 |
-| 416 | 0.363 | 0.172 | 0.717 | 0.264 | 12.4 |
-| 320 | 0.340 | 0.156 | 0.724 | 0.234 | 8.3 |
+| 640 | 0.341 | 0.158 | 0.676 | 0.279 | 54.9 |
+| 416 | 0.363 | 0.172 | 0.717 | 0.264 | 24.2 |
+| 320 | 0.340 | 0.156 | 0.724 | 0.234 | 14.2 |
 
-\* onnxruntime (Python, CPU) on my dev machine, model only. Browser speed depends on the device.
+\* onnxruntime (Python, CPU) on my dev machine, model only, and it was a shared machine so treat these as rough.
+Browser speed depends on the device.
 
 **What this means:** when the model says "pothole" at the default threshold it is right about 2 out of 3 times,
-but it only finds about 1 in 4 of the labelled potholes in this dataset. Looking at the misses, most are small,
-far-away or shallow potholes, and this dataset labels a lot of those. Big, close potholes (the dangerous ones)
-are found much more reliably. 416 px loses very little compared to 640, which is why the web app uses 416 on
-devices without WebGPU. Results saved in `results/`.
+but it only finds about 1 in 4 of the labelled potholes in this dataset. Recall depends a lot on size (640 px input):
+0.19 for small potholes (under 1% of the image, 96 of them),
+0.26 for medium (1-5%) and 0.41 for large ones (over 5%).
+So it is a useful "there is a pothole ahead" signal for bigger potholes but it will miss plenty, and the map relies on
+several reports from different people rather than one detection. On this set 416 px even scored a little higher than 640
+(the images were stretched to 640x640 by the dataset author, which may favour smaller inputs), so the web app uses
+416 on devices without WebGPU. Results saved in `results/`.

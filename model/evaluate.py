@@ -80,7 +80,7 @@ def main():
     sess = ort.InferenceSession(args.model, providers=["CPUExecutionProvider"])
     inp = sess.get_inputs()[0].name
     images = sorted(glob.glob(os.path.join(args.data, args.split, "images", "*.jpg")))
-    dets, gts, times = [], {}, []
+    dets, gts, times, sizes = [], {}, [], {}
     for k, path in enumerate(images):
         img = Image.open(path).convert("RGB")
         w, h = img.size
@@ -94,6 +94,7 @@ def main():
             dets.append((k, float(s), b))
         lab = os.path.join(args.data, args.split, "labels", os.path.splitext(os.path.basename(path))[0] + ".txt")
         gts[k] = load_labels(lab, w, h)
+        sizes[k] = (w, h)
 
     n_gt = sum(len(g) for g in gts.values())
     ap50, _ = evaluate(dets, gts, 0.5)
@@ -104,6 +105,21 @@ def main():
     _, tp = evaluate(app, gts, 0.5)
     p = tp.sum() / max(len(app), 1)
     r = tp.sum() / max(n_gt, 1)
+
+    # recall split by how big the pothole is in the image (at the app threshold)
+    by_size = {"small_lt1pct": [0, 0], "medium_1to5pct": [0, 0], "large_gt5pct": [0, 0]}
+    app_by_img = {}
+    for img_id, score, box in app:
+        app_by_img.setdefault(img_id, []).append(box)
+    for img_id, g in gts.items():
+        w, h = sizes[img_id]
+        preds = np.array(app_by_img.get(img_id, [])).reshape(-1, 4)
+        for gb in g:
+            a = (gb[2] - gb[0]) * (gb[3] - gb[1]) / (w * h)
+            key = "small_lt1pct" if a < 0.01 else "medium_1to5pct" if a < 0.05 else "large_gt5pct"
+            by_size[key][1] += 1
+            if len(preds) and iou(gb, preds).max() >= 0.5:
+                by_size[key][0] += 1
 
     res = {
         "model": os.path.basename(args.model),
@@ -117,6 +133,7 @@ def main():
         f"recall@conf{args.app_conf}": round(float(r), 3),
         "f1": round(float(2 * p * r / max(p + r, 1e-9)), 3),
         "cpu_ms_per_image_onnxruntime": round(1000 * float(np.median(times)), 1),
+        "recall_by_size": {k: {"potholes": n, "recall": round(hit / max(n, 1), 3)} for k, (hit, n) in by_size.items()},
     }
     print(json.dumps(res, indent=2))
     if args.out:
