@@ -2,15 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pothole Navigation Frontend</title>
-    <meta property="og:image" content="https://bolt.new/static/og_default.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Safe Roads - real-time pothole detection</title>
+    <meta name="description" content="Detect potholes in real time from your camera, video or photos right in the browser, see them on a shared hazard map and get warned on your route." />
+    <meta name="theme-color" content="#0a0b0d" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Safe Roads - real-time pothole detection" />
+    <meta property="og:description" content="YOLOv8 pothole detection running in your browser, a shared hazard map and route alerts." />
+    <meta property="og:url" content="https://safe-roads-ai.netlify.app/" />
+    <meta property="og:image" content="https://safe-roads-ai.netlify.app/og.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>Safe Roads needs JavaScript to run the detection model.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

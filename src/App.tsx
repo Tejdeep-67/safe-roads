@@ -1,156 +1,62 @@
-import { useState, useEffect } from 'react';
-import { User, X } from 'lucide-react';
-import { useAuth } from './contexts/AuthContext';
-import { Map } from './components/Map';
-import { SearchBar } from './components/SearchBar';
-import { DirectionsPanel } from './components/DirectionsPanel';
-import { ProfilePanel } from './components/ProfilePanel';
-import { AuthModal } from './components/AuthModal';
-import { Intro } from './components/Intro';
-import { SearchResult, RouteInfo } from './types';
+import { lazy, Suspense, useEffect } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
+import Toaster from './components/Toaster';
+import Home from './pages/Home';
+import NotFound from './pages/NotFound';
 
-function App() {
-  const { user, loading } = useAuth();
-  const [showIntro, setShowIntro] = useState(true);
-  const [selectedLocation, setSelectedLocation] = useState<SearchResult | null>(null);
-  const [showDirections, setShowDirections] = useState(false);
-  const [source, setSource] = useState<SearchResult | null>(null);
-  const [destination, setDestination] = useState<SearchResult | null>(null);
-  const [route, setRoute] = useState<RouteInfo | null>(null);
-  const [showProfile, setShowProfile] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [authRequired, setAuthRequired] = useState(false);
+// heavier pages are split out so the landing page loads fast
+const Detect = lazy(() => import('./pages/Detect'));
+const HazardMap = lazy(() => import('./pages/HazardMap'));
+const RoutePlanner = lazy(() => import('./pages/RoutePlanner'));
+const About = lazy(() => import('./pages/About'));
 
-  // Setup periodic refresh for new potholes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshTrigger(prev => prev + 1);
-    }, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+const TITLES: Record<string, string> = {
+  '/': 'Safe Roads - real-time pothole detection',
+  '/detect': 'Detect potholes - Safe Roads',
+  '/map': 'Hazard map - Safe Roads',
+  '/route': 'Route alerts - Safe Roads',
+  '/about': 'How it works - Safe Roads',
+};
 
-  const handlePotholeUploaded = () => {
-    // Immediately trigger refresh when a pothole is uploaded
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  const handleSelectLocation = (result: SearchResult) => {
-    setSelectedLocation(result);
-    setShowDirections(false);
-    setDestination(null);
-    setSource(null);
-    setRoute(null);
-  };
-
-  const handleShowDirections = () => {
-    if (selectedLocation) {
-      setDestination(selectedLocation);
-      setShowDirections(true);
-    }
-  };
-
-  const handleStartNavigation = (sourceLocation: SearchResult, route: RouteInfo) => {
-    setSource(sourceLocation);
-    setRoute(route);
-    setShowDirections(false);
-  };
-
-  const handleCloseDirections = () => {
-    setShowDirections(false);
-    setSelectedLocation(null);
-  };
-
-  const handleExitNavigation = () => {
-    setSource(null);
-    setShowDirections(false);
-    setSelectedLocation(null);
-    setDestination(null);
-    setRoute(null);
-  };
-
-  const handleReportClick = () => {
-    if (!user) {
-      setAuthRequired(true);
-      setShowAuth(true);
-    } else {
-      setShowProfile(true);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading...</div>
-      </div>
-    );
-  }
-
-  // Show intro on first load
-  if (showIntro) {
-    return <Intro onComplete={() => setShowIntro(false)} />;
-  }
-
+function PageLoader() {
   return (
-    <div className="relative w-full h-screen overflow-hidden">
-      <Map
-        destination={destination}
-        source={source}
-        route={route}
-        onRouteUpdate={setRoute}
-        refreshTrigger={refreshTrigger}
-      />
-
-      {!showDirections && !showProfile && (
-        <SearchBar
-          onSelectLocation={handleSelectLocation}
-          onShowDirections={handleShowDirections}
-          selectedLocation={selectedLocation}
-        />
-      )}
-
-      {showDirections && destination && !showProfile && (
-        <DirectionsPanel
-          destination={destination}
-          route={route}
-          onClose={handleCloseDirections}
-          onStartNavigation={handleStartNavigation}
-          onExitNavigation={handleExitNavigation}
-          isNavigating={source !== null}
-        />
-      )}
-
-      {/* Exit Navigation Button - shown when actively navigating */}
-      {source && !showProfile && (
-        <button
-          onClick={handleExitNavigation}
-          className="absolute top-4 left-4 md:left-4 z-[999] bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
-        >
-          <X className="w-4 h-4" />
-          Exit Navigation
-        </button>
-      )}
-
-      {!showProfile && (
-        <button
-          onClick={handleReportClick}
-          className="absolute top-4 right-4 md:right-4 z-[1000] bg-white w-12 h-12 rounded-full shadow-lg hover:bg-gray-50 flex items-center justify-center"
-          title={user ? "Profile & Reports" : "Sign in to report potholes"}
-        >
-          <User className="w-6 h-6 text-gray-700" />
-        </button>
-      )}
-
-      {showProfile && user && <ProfilePanel onClose={() => setShowProfile(false)} onPotholeUploaded={handlePotholeUploaded} />}
-      
-      {showAuth && <AuthModal onClose={() => {
-        setShowAuth(false);
-        if (authRequired) {
-          setAuthRequired(false);
-        }
-      }} />}
+    <div className="grid min-h-[60vh] place-items-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber/30 border-t-amber" />
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    document.title = TITLES[pathname] ?? 'Safe Roads';
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[2000] btn-primary">
+        Skip to content
+      </a>
+      <Navbar />
+      <main id="main" className="flex-1 pb-20 md:pb-0">
+        <div key={pathname} className="animate-fade-up">
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/detect" element={<Detect />} />
+              <Route path="/map" element={<HazardMap />} />
+              <Route path="/route" element={<RoutePlanner />} />
+              <Route path="/about" element={<About />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </div>
+      </main>
+      <BottomNav />
+      <Toaster />
+    </div>
+  );
+}
