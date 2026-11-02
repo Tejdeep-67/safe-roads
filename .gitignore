@@ -25,3 +25,15 @@ dist-ssr
 backend/venv/
 backend/models/*.pt
 .bolt/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/*.db
+.pytest_cache/
+
+# netlify
+.netlify/
