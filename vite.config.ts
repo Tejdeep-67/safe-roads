@@ -1,22 +1,28 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    // onnxruntime-web loads its own .wasm files, pre-bundling breaks the paths
+    exclude: ['onnxruntime-web'],
+  },
+  worker: {
+    format: 'es',
+  },
+  build: {
+    target: 'es2022',
+    chunkSizeWarningLimit: 1200,
   },
   server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
-      '/uploads': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
+    headers: {
+      // same isolation headers as netlify.toml so multi-threaded wasm works in dev too
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
     },
+  },
+  test: {
+    include: ['src/**/*.test.ts'],
   },
 });
