@@ -735,11 +735,16 @@ function ModelStatus({ info, pct, error, onRetry }: { info: DetectorInfo | null;
       </div>
     );
   return (
-    <div className="card flex items-center gap-3 px-4 py-3 text-xs text-zinc-400">
+    <div className="card flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3 text-xs text-zinc-400">
       <span className="h-2 w-2 rounded-full bg-signal shadow-[0_0_10px_#2dd4bf]" />
-      Model ready · <span className="font-semibold uppercase text-zinc-200">{info.backend}</span>
-      {info.backend === 'wasm' && <span>· {info.threads} thread{info.threads > 1 ? 's' : ''}</span>}
-      <span>· loaded in {(info.loadMs / 1000).toFixed(1)} s</span>
+      <span className="whitespace-nowrap">Model ready</span>
+      <span className="whitespace-nowrap font-semibold uppercase text-zinc-200">{info.backend}</span>
+      {info.backend === 'wasm' && (
+        <span className="whitespace-nowrap">
+          {info.threads} thread{info.threads > 1 ? 's' : ''}
+        </span>
+      )}
+      <span className="whitespace-nowrap">loaded in {(info.loadMs / 1000).toFixed(1)} s</span>
     </div>
   );
 }
