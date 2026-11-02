@@ -127,6 +127,14 @@ export default function RoutePlanner() {
 
   const near = useMemo(() => (route ? hazardsNearRoute(route.coords, hazards, buffer) : []), [route, hazards, buffer]);
   const { drive, startGps, startSim, stop } = useDriveMode(route?.coords ?? null, near, { voice });
+  const mapWrap = useRef<HTMLDivElement>(null);
+  // on phones the map sits below the list, so bring it into view when driving starts
+  useEffect(() => {
+    if (drive.active && window.innerWidth < 1024) {
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      mapWrap.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    }
+  }, [drive.active]);
   const nearIds = useMemo(() => new Set(near.map((n) => n.item.id)), [near]);
 
   const plan = async (a = from, b = to) => {
@@ -291,7 +299,7 @@ export default function RoutePlanner() {
           )}
         </div>
 
-        <div className="relative isolate h-[60vh] overflow-hidden rounded-2xl border border-white/[.08] lg:h-[calc(100dvh-180px)] lg:min-h-[560px]">
+        <div ref={mapWrap} className="relative isolate h-[70vh] scroll-mt-16 overflow-hidden rounded-2xl border border-white/[.08] lg:h-[calc(100dvh-180px)] lg:min-h-[560px]">
           <MapContainer center={GUNTUR} zoom={12} className="h-full w-full" zoomControl={false}>
             <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} maxZoom={19} />
             <ZoomControl position="bottomright" />
