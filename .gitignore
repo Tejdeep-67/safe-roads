@@ -37,3 +37,4 @@ backend/*.db
 
 # netlify
 .netlify/
+model/eval_ds/

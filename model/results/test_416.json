@@ -1,0 +1,13 @@
+{
+  "model": "pothole-yolov8n-seg.onnx",
+  "imgsz": 416,
+  "split": "test",
+  "images": 100,
+  "ground_truth_boxes": 269,
+  "mAP50": 0.363,
+  "mAP50_95": 0.172,
+  "precision@conf0.35": 0.717,
+  "recall@conf0.35": 0.264,
+  "f1": 0.386,
+  "cpu_ms_per_image_onnxruntime": 12.4
+}
