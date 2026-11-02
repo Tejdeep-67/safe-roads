@@ -1,7 +1,7 @@
 // node --test netlify/functions/
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { handle, validate, RATE_LIMIT } from './lib/hazards-core.mjs';
+import { handle, validate, RATE_LIMIT } from '../functions/lib/hazards-core.mjs';
 
 // tiny fake of the Netlify Blobs store with etags
 function memoryStore() {
