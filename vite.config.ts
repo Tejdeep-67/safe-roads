@@ -21,6 +21,8 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'credentialless',
     },
+    // `SAFE_ROADS_API=http://127.0.0.1:5000 npm run dev` sends /api/hazards to the Flask backend
+    proxy: process.env.SAFE_ROADS_API ? { '/api': process.env.SAFE_ROADS_API } : undefined,
   },
   test: {
     include: ['src/**/*.test.ts'],

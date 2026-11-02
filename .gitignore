@@ -30,8 +30,6 @@ backend/models/*.pt
 __pycache__/
 *.pyc
 .venv/
-backend/uploads/*
-!backend/uploads/.gitkeep
 backend/*.db
 .pytest_cache/
 

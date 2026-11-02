@@ -1,79 +1,110 @@
-"""
-Pothole Detection and Hazard-Aware Navigation System
-Flask Backend - Main Application
-"""
+"""Safe Roads local API.
 
+The web app does not need this: detection runs in the browser and reports go to a
+Netlify Function. This API is for running the original PyTorch model on a server
+(or from scripts) and for keeping reports in a local SQLite file.
+
+    python app.py            # http://127.0.0.1:5000
+"""
+from __future__ import annotations
+
+import io
 import os
-from dotenv import load_dotenv
-from flask import Flask, send_file
+
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-from pymongo import MongoClient
+from PIL import Image, UnidentifiedImageError
 
-# Load environment variables
-load_dotenv()
+import detector
+from gps import gps_from_image
+from hazards import HazardStore, ValidationError, validate
 
-# Initialize Flask app
-app = Flask(__name__)
+ALLOWED_SIZES = {320, 416, 480, 640, 800}
+MAX_UPLOAD_MB = 10
 
-# Enable CORS
-CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# Configure static file serving for uploads
-app.config['JSON_SORT_KEYS'] = False
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+def create_app(db_path: str | None = None) -> Flask:
+    app = Flask(__name__)
+    app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024
+    CORS(app, resources={r"/api/*": {"origins": os.environ.get("SAFE_ROADS_CORS", "*")}})
+    store = HazardStore(db_path or os.environ.get("SAFE_ROADS_DB", os.path.join(os.path.dirname(__file__), "saferoads.db")))
+    app.extensions["hazard_store"] = store
 
-# Serve uploads folder as static files
-@app.route('/uploads/<path:filename>')
-def serve_upload(filename):
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    if not os.path.exists(filepath):
-        return {'error': 'File not found'}, 404
-    return send_file(filepath, mimetype='image/jpeg')
+    @app.get("/api/health")
+    def health():
+        return jsonify(ok=True, model=os.path.basename(detector.MODEL_PATH), model_found=os.path.exists(detector.MODEL_PATH))
 
-# MongoDB Configuration
-MONGO_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017')
-DB_NAME = os.getenv('DB_NAME', 'pothole_detection')
+    @app.post("/api/detect")
+    def detect():
+        file = request.files.get("image")
+        if file is None or file.filename == "":
+            return jsonify(error="send the photo as multipart field 'image'"), 400
+        try:
+            conf = float(request.form.get("conf", 0.35))
+            imgsz = int(request.form.get("imgsz", 640))
+        except ValueError:
+            return jsonify(error="conf must be a number and imgsz an integer"), 400
+        if not 0.05 <= conf <= 0.95:
+            return jsonify(error="conf must be between 0.05 and 0.95"), 400
+        if imgsz not in ALLOWED_SIZES:
+            return jsonify(error=f"imgsz must be one of {sorted(ALLOWED_SIZES)}"), 400
+        try:
+            image = Image.open(io.BytesIO(file.read()))
+            image.load()
+        except (UnidentifiedImageError, OSError):
+            return jsonify(error="that file is not an image I can read"), 400
+        gps = gps_from_image(image)
+        try:
+            dets = detector.detect(image, conf=conf, imgsz=imgsz)
+        except FileNotFoundError as e:
+            return jsonify(error=str(e)), 503
+        return jsonify(
+            width=image.width,
+            height=image.height,
+            count=len(dets),
+            detections=dets,
+            gps={"lat": gps[0], "lng": gps[1]} if gps else None,
+        )
 
-# Connect to MongoDB
-try:
-    client = MongoClient(MONGO_URI)
-    db = client[DB_NAME]
-    print("✅ Connected to MongoDB")
-except Exception as e:
-    print(f"❌ Failed to connect to MongoDB: {e}")
+    @app.get("/api/hazards")
+    def list_hazards():
+        hazards = store.list()
+        return jsonify(hazards=hazards, count=len(hazards))
 
-# Store db in app context
-app.db = db
+    @app.post("/api/hazards")
+    def add_hazard():
+        if request.content_length and request.content_length > 2048:
+            return jsonify(error="body too large"), 413
+        body = request.get_json(silent=True)
+        if body is None:
+            return jsonify(error="invalid JSON"), 400
+        try:
+            value = validate(body)
+        except ValidationError as e:
+            return jsonify(error=str(e)), 400
+        ok, retry = store.allow(request.remote_addr or "unknown")
+        if not ok:
+            resp = jsonify(error="too many reports, try again later")
+            resp.headers["Retry-After"] = str(retry)
+            return resp, 429
+        hazard, merged = store.add(value)
+        return jsonify(hazard=hazard, merged=merged), 200 if merged else 201
 
-# Import routes
-from routes.auth import auth_bp
-from routes.reports import reports_bp
-from routes.potholes import potholes_bp
-from routes.users import users_bp
+    @app.errorhandler(413)
+    def too_large(_e):
+        return jsonify(error=f"file too large (max {MAX_UPLOAD_MB} MB)"), 413
 
-# Register blueprints
-app.register_blueprint(auth_bp, url_prefix='/api/auth')
-app.register_blueprint(reports_bp, url_prefix='/api/reports')
-app.register_blueprint(potholes_bp, url_prefix='/api/potholes')
-app.register_blueprint(users_bp, url_prefix='/api/users')
+    @app.errorhandler(404)
+    def not_found(_e):
+        return jsonify(error="not found"), 404
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return {
-        'status': 'healthy',
-        'message': 'Pothole Detection API is running'
-    }, 200
+    @app.errorhandler(405)
+    def not_allowed(_e):
+        return jsonify(error="method not allowed"), 405
 
-@app.errorhandler(404)
-def not_found(error):
-    return {'error': 'Not found'}, 404
+    return app
 
-@app.errorhandler(500)
-def internal_error(error):
-    return {'error': 'Internal server error'}, 500
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    create_app().run(host="127.0.0.1", port=port, debug=os.environ.get("FLASK_DEBUG") == "1")
