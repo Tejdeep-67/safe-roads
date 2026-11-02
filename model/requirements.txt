@@ -1,0 +1,6 @@
+ultralytics==8.4.198
+onnx>=1.16
+onnxslim
+onnxruntime>=1.18
+numpy
+pillow
