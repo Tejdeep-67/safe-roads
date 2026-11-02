@@ -29,7 +29,7 @@ function saveLocal(list: Hazard[]) {
   } catch {
     // storage full (thumbnails) - drop thumbnails and try again
     try {
-      localStorage.setItem(LS_KEY, JSON.stringify(list.slice(-300).map(({ thumb: _t, ...h }) => h)));
+      localStorage.setItem(LS_KEY, JSON.stringify(list.slice(-300).map((h) => ({ ...h, thumb: undefined }))));
     } catch {
       /* give up quietly */
     }
@@ -96,7 +96,7 @@ export async function addHazard(input: NewHazard): Promise<Hazard> {
   emit();
   if (state.status === 'shared') {
     try {
-      const { thumb: _thumb, ...body } = input; // photos stay on the device
+      const body = { ...input, thumb: undefined }; // photos stay on the device (undefined is dropped by JSON)
       const res = await fetchWithTimeout(API, { method: 'POST', body: JSON.stringify(body) });
       if (res.ok && isJson(res)) {
         const { hazard } = await res.json();

@@ -622,7 +622,10 @@ export default function Detect() {
                 onChange={(on) => {
                   setFrameByFrame(on);
                   const v = videoRef.current;
-                  if (v && running) on ? v.pause() : v.play();
+                  if (v && running) {
+                    if (on) v.pause();
+                    else v.play();
+                  }
                 }}
               />
             )}

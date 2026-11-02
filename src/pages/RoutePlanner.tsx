@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, CircleMarker, useMap, Tooltip, ZoomControl } from 'react-leaflet';
 import { Search, Crosshair, ArrowUpDown, Navigation, Square, Volume2, VolumeX, Play, Route as RouteIcon, AlertTriangle, Loader2 } from 'lucide-react';
 import L, { GUNTUR, TILE_ATTRIBUTION, TILE_URL } from '../map/leaflet';
-import { hazardIcon, popupHtml } from '../map/HazardLayer';
+import { hazardIcon, popupHtml } from '../map/markers';
 import { useHazards } from '../hazards/store';
 import { DEMO_ROUTE } from '../hazards/sample';
 import { formatDistance, hazardsNearRoute, type LatLng } from '../geo/geo';

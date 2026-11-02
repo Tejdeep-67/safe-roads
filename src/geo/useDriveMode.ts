@@ -138,7 +138,6 @@ export function useDriveMode(route: LatLng[] | null, hazards: NearHazard<Hazard>
       },
       { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 },
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route, stop]);
 
   const startSim = useCallback(
@@ -160,7 +159,6 @@ export function useDriveMode(route: LatLng[] | null, hazards: NearHazard<Hazard>
         updateRef.current(pointAlong(route, along, cum.current), kmh, 'sim');
       }, tick);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [route, stop],
   );
 
