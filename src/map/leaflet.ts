@@ -4,9 +4,10 @@ import L from 'leaflet';
 
 (window as unknown as { L: typeof L }).L = L;
 
-export const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-export const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// Standard OpenStreetMap tiles (no API key). They are made dark with a CSS filter on
+// the tile pane (see .leaflet-tile-pane in index.css) so they match the app.
+export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export const GUNTUR: [number, number] = [16.3067, 80.4365];
 

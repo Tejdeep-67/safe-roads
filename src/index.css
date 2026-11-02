@@ -90,6 +90,9 @@ input[type='range'] {
   font-family: inherit;
   background: #0f1114;
 }
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.6);
+}
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
   background: #191c21;
