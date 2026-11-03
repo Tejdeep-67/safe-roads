@@ -35,6 +35,20 @@ export default function BaseMap({ dark }: { dark: boolean }) {
         gl.addTo(map);
         layer = gl;
         const ml = gl.getMaplibreMap();
+        // Hide shop/hospital/school icons: the red hospital crosses looked like pothole pins.
+        // Bus/train stations stay, they help find your way.
+        const hidePois = () => {
+          for (const lyr of ml.getStyle()?.layers ?? []) {
+            if (lyr.id.startsWith('poi') && !lyr.id.includes('transit') && ml.getLayoutProperty(lyr.id, 'visibility') !== 'none') {
+              ml.setLayoutProperty(lyr.id, 'visibility', 'none');
+            }
+          }
+        };
+        ml.on('styledata', hidePois);
+        // a few icons are missing from the style's sprite; an empty image keeps the console quiet
+        ml.on('styleimagemissing', (e: { id: string }) => {
+          if (!ml.hasImage(e.id)) ml.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+        });
         ml.on('error', (e) => {
           // a missing style or tile server problem: switch to raster tiles for this visit
           const status = (e as { error?: { status?: number } }).error?.status;
