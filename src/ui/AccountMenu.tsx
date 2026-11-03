@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, EyeOff, Info, ListChecks, LogIn, LogOut, Moon, ScanSearch, Sun, UserRound } from 'lucide-react';
+import { Download, Eye, EyeOff, Info, ListChecks, LogIn, LogOut, Moon, ScanSearch, Sun, UserRound } from 'lucide-react';
 import type { User } from '../auth/AuthProvider';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   onSignOut: () => void;
   onMyReports: () => void;
   onAbout: () => void;
+  onGetApp?: () => void; // left out inside the Android app
   onToggleDark: () => void;
   onToggleSamples: () => void;
 }
@@ -95,6 +96,11 @@ export default function AccountMenu(p: Props) {
             {p.showSamples ? <EyeOff className="h-5 w-5 text-muted" /> : <Eye className="h-5 w-5 text-muted" />}
             {p.showSamples ? 'Hide sample pins' : 'Show sample pins'}
           </button>
+          {p.onGetApp && (
+            <button role="menuitem" className="menu-item" onClick={run(p.onGetApp)}>
+              <Download className="h-5 w-5 text-muted" /> Get the app
+            </button>
+          )}
           <button role="menuitem" className="menu-item" onClick={run(p.onAbout)}>
             <Info className="h-5 w-5 text-muted" /> About Safe Roads
           </button>

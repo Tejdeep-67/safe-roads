@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Github, ScanSearch } from 'lucide-react';
+import { Download, Github, ScanSearch } from 'lucide-react';
 import Sheet from './Sheet';
 import Logo from './Logo';
 
-export default function AboutPanel({ onClose }: { onClose: () => void }) {
+export default function AboutPanel({ onClose, onGetApp }: { onClose: () => void; onGetApp?: () => void }) {
   return (
     <Sheet label="About Safe Roads" title="About Safe Roads" onClose={onClose}>
       <div className="space-y-4 text-[14px] leading-relaxed text-ink">
@@ -42,6 +42,11 @@ export default function AboutPanel({ onClose }: { onClose: () => void }) {
           </p>
         </section>
         <div className="flex flex-wrap gap-2 pt-1">
+          {onGetApp && (
+            <button className="btn-primary" onClick={onGetApp}>
+              <Download className="h-4 w-4" /> Get the app
+            </button>
+          )}
           <Link to="/detect" className="btn-tonal">
             <ScanSearch className="h-4 w-4" /> Detection demo
           </Link>

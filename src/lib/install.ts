@@ -1,4 +1,12 @@
-// Small helpers for "install as app" (PWA).
+// Small helpers for "install as app" (PWA) and the Android app download.
+// The Android app is a thin Capacitor wrapper that opens this same website (see android/),
+// it adds "SafeRoadsApp" to the user agent so the site doesn't advertise the app inside the app.
+
+export const APK_URL = 'https://github.com/Tejdeep-67/safe-roads/releases/latest/download/safe-roads.apk';
+export const APK_SIZE = '3.6 MB';
+export const RELEASE_URL = 'https://github.com/Tejdeep-67/safe-roads/releases/latest';
+
+export const inAndroidApp = () => /SafeRoadsApp/.test(navigator.userAgent);
 
 export const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const isAndroid = () => /Android/i.test(navigator.userAgent);
@@ -41,7 +49,9 @@ export async function promptInstall() {
 }
 
 export function registerServiceWorker() {
-  if (!('serviceWorker' in navigator) || !import.meta.env.PROD) return;
+  // not inside the Android app: there the page always comes from the network and the
+  // app has its own "no internet" screen
+  if (!('serviceWorker' in navigator) || !import.meta.env.PROD || inAndroidApp()) return;
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch((err) => console.warn('service worker not registered', err));
   });

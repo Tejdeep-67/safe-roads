@@ -3,7 +3,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AttributionControl, MapContainer, Marker, Polyline, ZoomControl, useMapEvents, Circle } from 'react-leaflet';
 import type { Map as LeafletMap } from 'leaflet';
-import { Camera, LocateFixed, LocateOff, Locate, RefreshCw, WifiOff } from 'lucide-react';
+import { Camera, Download, LocateFixed, LocateOff, Locate, RefreshCw, WifiOff, X } from 'lucide-react';
 import L, { GUNTUR } from './leaflet';
 import BaseMap from './BaseMap';
 import HazardPins from './HazardPins';
@@ -24,6 +24,8 @@ import Directions, { routeHazards, type From } from '../ui/Directions';
 import DriveOverlay from '../ui/DriveOverlay';
 import MyReports from '../ui/MyReports';
 import AboutPanel from '../ui/AboutPanel';
+import GetAppPanel from '../ui/GetAppPanel';
+import { inAndroidApp, isStandalone } from '../lib/install';
 import { toast } from '../ui/Toaster';
 
 // the report flow pulls in exifr + the detector glue, so it loads when first opened
@@ -37,9 +39,13 @@ type Panel =
   | { kind: 'report' }
   | { kind: 'mine' }
   | { kind: 'about' }
+  | { kind: 'app' }
   | { kind: 'auth'; reason?: string; then?: 'report' | 'mine' };
 
 const VIEW_KEY = 'saferoads.view';
+const APP_PILL_KEY = 'saferoads.appPill';
+// no point advertising the app inside the app, or when it's already installed as a PWA
+const showAppLinks = () => !inAndroidApp() && !isStandalone();
 const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -87,6 +93,7 @@ export default function MapApp() {
   const [driving, setDriving] = useState(false);
   const [voice, setVoice] = useState(true);
   const [picking, setPicking] = useState<{ done: (ll: LatLng | null) => void } | null>(null);
+  const [appPill, setAppPill] = useState(() => showAppLinks() && localStorage.getItem(APP_PILL_KEY) !== 'hidden');
   const mapRef = useRef<LeafletMap | null>(null);
   const view = useMemo(initialView, []);
 
@@ -254,6 +261,7 @@ export default function MapApp() {
       }}
       onMyReports={() => setPanel({ kind: 'mine' })}
       onAbout={() => setPanel({ kind: 'about' })}
+      onGetApp={showAppLinks() ? () => setPanel({ kind: 'app' }) : undefined}
       onToggleDark={() => setDark((d) => !d)}
       onToggleSamples={() => setShowSamples(!hz.showSamples)}
     />
@@ -342,6 +350,27 @@ export default function MapApp() {
             )}
           </div>
           <div className="pointer-events-auto ml-auto hidden md:block">{avatar}</div>
+        </div>
+      )}
+
+      {/* small "get the app" pill on phones, bottom left. Dismissed once = gone for good */}
+      {appPill && !driving && !picking && !panelOpen && (
+        <div className="absolute bottom-0 left-0 z-[1000] flex items-center p-4 pb-[max(32px,calc(env(safe-area-inset-bottom)+24px))] md:hidden">
+          <div className="flex items-center rounded-full bg-raised shadow-float">
+            <button className="flex items-center gap-1.5 py-2.5 pl-3.5 pr-1 text-[13px] font-semibold text-ink" onClick={() => setPanel({ kind: 'app' })}>
+              <Download className="h-4 w-4 text-brand-600" /> Get the app
+            </button>
+            <button
+              className="rounded-full p-2 text-faint"
+              aria-label="Hide"
+              onClick={() => {
+                localStorage.setItem(APP_PILL_KEY, 'hidden');
+                setAppPill(false);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -467,7 +496,8 @@ export default function MapApp() {
           {panel.kind === 'mine' && (
             <MyReports mine={hz.mine} myPos={loc.pos} onClose={closePanel} onOpen={openHazard} onReport={openReport} />
           )}
-          {panel.kind === 'about' && <AboutPanel onClose={closePanel} />}
+          {panel.kind === 'about' && <AboutPanel onClose={closePanel} onGetApp={showAppLinks() ? () => setPanelState({ kind: 'app' }) : undefined} />}
+          {panel.kind === 'app' && <GetAppPanel onClose={closePanel} />}
           {panel.kind === 'auth' && (
             <AuthPanel
               reason={panel.reason}
