@@ -25,6 +25,31 @@ Looking at the map needs no account. Reporting does, so that only the person who
 
 The faded pins around Guntur and Vijayawada are **sample data** I placed on real roads so the map isn't empty on the first visit. They say "sample" when you open them and can be hidden from the menu.
 
+## Android app
+
+**Download:** [safe-roads.apk](https://github.com/Tejdeep-67/safe-roads/releases/latest/download/safe-roads.apk) (3.6 MB, Android 7+) · [release page](https://github.com/Tejdeep-67/safe-roads/releases/latest)
+
+It isn't on the Play Store, so Android asks you to allow installing from your browser or Files app the first time. Allow it once and tap Install. On an iPhone or a laptop you don't need anything: open the site and use *Add to Home Screen* (Safari) or the install icon in Chrome/Edge's address bar, it's a PWA with a service worker.
+
+How the app is built: it's a [Capacitor](https://capacitorjs.com) app (`android/`, `capacitor.config.json`) whose WebView opens the live site, `https://thesaferoads.netlify.app`, instead of a copy of the build packed inside the APK. I went this way on purpose:
+
+- **Login keeps working.** The session is an httpOnly, `SameSite=Lax` cookie for `thesaferoads.netlify.app`. If the app served its own copy of the site from `https://localhost`, every API call would be cross-site, the cookie wouldn't be sent, and I'd have to loosen the cookie to `SameSite=None` and add CORS, which makes CSRF harder to rule out. Loading the real site keeps everything same-origin.
+- **One codebase, updates without a new APK.** A Netlify deploy updates the app too. The APK only changes if the Android side changes.
+- **Camera and GPS work like in Chrome.** Capacitor's WebView handles `<input capture>` (opens the camera app), `getUserMedia` (live camera on the detection page) and geolocation, and asks for the Android permission the first time. The manifest declares `CAMERA`, `ACCESS_FINE_LOCATION`/`ACCESS_COARSE_LOCATION` and `VIBRATE` (drive mode).
+- **No internet** shows a small offline screen from the APK (`app-shell/offline.html`) that reloads by itself when you're back online. The service worker is only used in browsers, not inside the app.
+
+The downside is that the app needs a connection to start, but so does the map, search and reporting anyway.
+
+Building the APK yourself (JDK 21 and the Android SDK, `compileSdk 36`):
+
+```bash
+npm ci
+npx cap sync android
+cd android && ./gradlew assembleRelease     # android/app/build/outputs/apk/release/app-release.apk
+```
+
+Release signing reads a `keystore.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) from `android/` or from the path in `SIGNING_PROPS`. The keystore itself is not in the repo. Icons and splash screens are generated from `assets/` with `npx @capacitor/assets generate --android`.
+
 ## How sign-in works (and why it's built this way)
 
 I didn't want a fake login or a paid auth service, and I wanted it to run on Netlify's free plan with nothing else to sign up for. So accounts are three small Netlify Functions with Netlify Blobs as the database.
@@ -147,7 +172,10 @@ src/
 netlify/functions/   auth, hazards, photos, health + lib/ (the logic, tested in netlify/tests)
 backend/       optional Flask API with the PyTorch model, pytest
 model/         ONNX export, ONNX check, evaluation scripts and results
-public/        ONNX model, demo photos and video, icons
+public/        ONNX model, demo photos and video, icons, service worker (sw.js)
+android/       Capacitor Android project (the APK)
+app-shell/     what the APK ships itself: the offline screen
+assets/        source images for the app icon and splash
 ```
 
 ## Limitations
@@ -160,8 +188,9 @@ public/        ONNX model, demo photos and video, icons
 - The rate-limit counters aren't atomic, so two requests at the exact same moment can both get through. Fine for slowing down spam and password guessing, not a hard quota.
 - OpenFreeMap, Photon, Nominatim, OSRM and the OSM tile servers are free public services with fair-use limits.
 - Old phones without WebGPU run the model at a few frames per second.
+- The Android app is a sideloaded APK, so Play Protect may show a warning the first time (it doesn't know the developer). It also needs internet to open.
 
-Next I'd like to add password reset by email, a "confirmed by N people" filter for alerts, and offline caching of a route's potholes. I'm also planning an Android app version.
+Next I'd like to add password reset by email, a "confirmed by N people" filter for alerts, and offline caching of a route's potholes.
 
 ## Credits
 
@@ -170,7 +199,7 @@ Next I'd like to add password reset by email, a "confirmed by N people" filter f
 - Test data: [Potholes Detection](https://universe.roboflow.com/project-ssayl/potholes-detection-d4rma) (Roboflow Universe, CC BY 4.0).
 - Training data of the model: [Pothole Image Segmentation Dataset](https://www.kaggle.com/datasets/farzadnekouei/pothole-image-segmentation-dataset) (Kaggle).
 - Map data © OpenStreetMap contributors. Base map by [OpenFreeMap](https://openfreemap.org) (OpenMapTiles schema, drawn with MapLibre; plain OSM tiles as a fallback). Place search by Photon (komoot) and Nominatim, routing by OSRM.
-- Built with React, TypeScript, Vite, Tailwind CSS, Leaflet, MapLibre, ONNX Runtime Web and Ultralytics YOLOv8.
+- Built with React, TypeScript, Vite, Tailwind CSS, Leaflet, MapLibre, ONNX Runtime Web and Ultralytics YOLOv8. Android app with Capacitor.
 
 ## License
 
