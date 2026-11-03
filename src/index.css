@@ -125,7 +125,7 @@
   border-color: rgb(var(--line)) !important;
 }
 
-/* OSM tiles: a touch softer in light mode, inverted for the dark map */
+/* fallback OSM raster tiles (no WebGL): a touch softer in light mode, inverted for the dark map */
 .map-tiles {
   filter: saturate(0.85) contrast(0.96);
 }

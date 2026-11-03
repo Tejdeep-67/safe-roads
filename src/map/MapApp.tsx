@@ -1,10 +1,11 @@
 // The whole app is this one screen: a full-screen map with a search bar, a few
 // floating buttons, and one panel at a time (bottom sheet on phones, left panel on desktop).
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AttributionControl, MapContainer, Marker, Polyline, TileLayer, ZoomControl, useMapEvents, Circle } from 'react-leaflet';
+import { AttributionControl, MapContainer, Marker, Polyline, ZoomControl, useMapEvents, Circle } from 'react-leaflet';
 import type { Map as LeafletMap } from 'leaflet';
 import { Camera, LocateFixed, LocateOff, Locate, RefreshCw, WifiOff } from 'lucide-react';
-import L, { GUNTUR, TILE_URL, TILE_ATTRIBUTION } from './leaflet';
+import L, { GUNTUR } from './leaflet';
+import BaseMap from './BaseMap';
 import HazardPins from './HazardPins';
 import { meIcon, placeIcon, startIcon } from './markers';
 import { useAuth } from '../auth/AuthProvider';
@@ -274,7 +275,7 @@ export default function MapApp() {
         ref={mapRef}
         worldCopyJump
       >
-        <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} maxZoom={19} className="map-tiles" />
+        <BaseMap dark={dark} />
         <AttributionControl position="bottomright" prefix={false} />
         {desktop && !driving && <ZoomControl position="bottomright" />}
         <MapEvents onClick={onMapClick} onMove={onMove} />

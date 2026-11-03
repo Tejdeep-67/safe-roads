@@ -158,7 +158,7 @@ public/        ONNX model, demo photos and video, icons
 - No email verification or password reset yet (that needs an email service). No moderation of reports either.
 - Sign-out clears the cookie; a stolen token would stay valid until it expires, since tokens aren't stored on the server.
 - The rate-limit counters aren't atomic, so two requests at the exact same moment can both get through. Fine for slowing down spam and password guessing, not a hard quota.
-- Photon, Nominatim, OSRM and the OSM tile servers are free public services with fair-use limits.
+- OpenFreeMap, Photon, Nominatim, OSRM and the OSM tile servers are free public services with fair-use limits.
 - Old phones without WebGPU run the model at a few frames per second.
 
 Next I'd like to add password reset by email, a "confirmed by N people" filter for alerts, and offline caching of a route's potholes. I'm also planning an Android app version.
@@ -169,5 +169,5 @@ Next I'd like to add password reset by email, a "confirmed by N people" filter f
 - Demo video: [Rainwater-Filled Potholes on a Community Road](https://commons.wikimedia.org/wiki/File:Rainwater-Filled_Potholes_on_a_Community_Road.webm) by Knowledge and philosophy (CC BY-SA 4.0), trimmed.
 - Test data: [Potholes Detection](https://universe.roboflow.com/project-ssayl/potholes-detection-d4rma) (Roboflow Universe, CC BY 4.0).
 - Training data of the model: [Pothole Image Segmentation Dataset](https://www.kaggle.com/datasets/farzadnekouei/pothole-image-segmentation-dataset) (Kaggle).
-- Map data and tiles © OpenStreetMap contributors. Place search by Photon (komoot) and Nominatim, routing by OSRM.
-- Built with React, TypeScript, Vite, Tailwind CSS, Leaflet, ONNX Runtime Web and Ultralytics YOLOv8.
+- Map data © OpenStreetMap contributors. Base map by [OpenFreeMap](https://openfreemap.org) (OpenMapTiles schema, drawn with MapLibre; plain OSM tiles as a fallback). Place search by Photon (komoot) and Nominatim, routing by OSRM.
+- Built with React, TypeScript, Vite, Tailwind CSS, Leaflet, MapLibre, ONNX Runtime Web and Ultralytics YOLOv8.
