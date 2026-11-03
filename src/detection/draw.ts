@@ -6,6 +6,8 @@ export const SEVERITY_COLOR: Record<Severity, string> = {
   high: '#dc2f2f',
 };
 
+const SEVERITY_WORD: Record<Severity, string> = { low: 'minor', medium: 'moderate', high: 'severe' };
+
 export interface DrawItem {
   det: Detection;
   label?: string; // e.g. track id
@@ -66,7 +68,7 @@ export function drawDetections(
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const text = `${label ? label + '  ' : ''}${Math.round(det.score * 100)}% · ${det.severity ?? ''}`;
+    const text = `${label ? label + '  ' : ''}${Math.round(det.score * 100)}% · ${SEVERITY_WORD[det.severity ?? 'low']}`;
     ctx.font = '600 12px "Inter Variable", system-ui, sans-serif';
     const tw = ctx.measureText(text).width + 12;
     const ty = y > 22 ? y - 22 : y + h + 4;
