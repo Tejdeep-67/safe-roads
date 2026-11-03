@@ -14,9 +14,11 @@ import { json, parseCookies, readJsonBody, rateLimit, sameOrigin } from './http.
 export const COOKIE = 'sr_session';
 export const SESSION_DAYS = 30;
 export const LIMITS = {
-  login: { max: 10, windowMs: 15 * 60 * 1000 }, // per IP
-  loginEmail: { max: 10, windowMs: 15 * 60 * 1000 }, // per account, so one account can't be hammered from many IPs
-  signup: { max: 5, windowMs: 60 * 60 * 1000 }, // per IP
+  // per IP. Not too low: a whole college hostel can share one IP
+  login: { max: 30, windowMs: 15 * 60 * 1000 },
+  // per account, so one account can't be guessed at from many IPs
+  loginEmail: { max: 10, windowMs: 15 * 60 * 1000 },
+  signup: { max: 10, windowMs: 60 * 60 * 1000 }, // per IP
 };
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 64 };
 
