@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Safe Roads",
   "short_name": "Safe Roads",
   "description": "A simple map of potholes. Report one with a photo, see them on your route.",
@@ -29,5 +30,11 @@
       "sizes": "any",
       "type": "image/svg+xml"
     }
+  ],
+  "orientation": "portrait",
+  "categories": [
+    "navigation",
+    "travel",
+    "utilities"
   ]
 }

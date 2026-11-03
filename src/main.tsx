@@ -5,6 +5,7 @@ import '@fontsource-variable/inter';
 import 'leaflet/dist/leaflet.css';
 import './index.css';
 import App from './App';
+import { registerServiceWorker } from './lib/install';
 
 // apply the saved theme before the first paint
 if (localStorage.getItem('saferoads.theme') === 'dark') document.documentElement.classList.add('dark');
@@ -16,3 +17,5 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 );
+
+registerServiceWorker();
