@@ -205,7 +205,13 @@ export async function handleAuth(req, deps) {
     const rl = await rateLimit(limits, 'login', ip, LIMITS.login, now);
     if (!rl.ok) return json(429, { error: 'Too many attempts. Try again later.' }, { 'retry-after': String(rl.retryAfter) });
     if (!(await verifyPassword(body.password ?? '', user.passwordHash))) return json(401, { error: 'Wrong password.' });
-    const removed = deps.onDeleteUser ? await deps.onDeleteUser(user.id) : 0;
+    let removed = 0;
+    try {
+      removed = deps.onDeleteUser ? await deps.onDeleteUser(user.id) : 0;
+    } catch {
+      // reports first, account second: never leave reports behind for a deleted user
+      return json(409, { error: 'Busy, please try again.' });
+    }
     await users.delete(emailKey(user.email));
     await users.delete(`users/${user.id}`);
     return json(200, { ok: true, reportsRemoved: removed }, { 'set-cookie': clearCookie() });

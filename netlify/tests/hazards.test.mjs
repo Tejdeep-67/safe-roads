@@ -152,3 +152,16 @@ test('deleting an account removes all of its reports and photos', async () => {
   assert.equal(left.length, 1);
   assert.equal(left[0].by, 'Bob');
 });
+
+test('works on a blob store that sends no etags (netlify dev)', async () => {
+  const d = deps({ user: alice });
+  const real = d.store.getWithMetadata;
+  d.store.getWithMetadata = async (k) => {
+    const r = await real(k);
+    return r && { ...r, etag: undefined };
+  };
+  const { hazard } = await (await handle(post(report), d)).json();
+  assert.equal((await handle(post({ ...report, lat: 17 }), d)).status, 201);
+  assert.equal((await handle(del(hazard.id), { ...d, id: hazard.id })).status, 200);
+  assert.equal((await (await handle(get(), d)).json()).count, 1);
+});

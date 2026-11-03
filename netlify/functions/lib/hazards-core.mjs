@@ -103,16 +103,18 @@ export function publicReport(r, userId) {
 
 export async function readReports(store) {
   const res = await store.getWithMetadata(KEY, { type: 'json', consistency: 'strong' });
-  return { reports: Array.isArray(res?.data) ? res.data : [], etag: res?.etag };
+  return { reports: Array.isArray(res?.data) ? res.data : [], etag: res?.etag, exists: Boolean(res) };
 }
 
 // read-modify-write with the etag, retried if someone else wrote in between
 export async function updateReports(store, fn) {
   for (let attempt = 0; attempt < 5; attempt++) {
-    const { reports, etag } = await readReports(store);
+    const { reports, etag, exists } = await readReports(store);
     const result = fn(reports);
     if (result.write === false) return result;
-    const opts = etag ? { onlyIfMatch: etag } : { onlyIfNew: true };
+    // the local `netlify dev` blob server doesn't send etags on reads; there we can only
+    // write unconditionally (production always has them)
+    const opts = etag ? { onlyIfMatch: etag } : exists ? {} : { onlyIfNew: true };
     const res = await store.setJSON(KEY, result.reports ?? reports, opts);
     if (res?.modified !== false) return result;
     await new Promise((r) => setTimeout(r, 40 + Math.random() * 120));
@@ -127,6 +129,7 @@ export async function deleteReportsOf(store, photos, userId) {
     if (!gone.length) return { write: false, gone };
     return { reports: reports.filter((r) => r.ownerId !== userId), gone };
   });
+  if (res.busy) throw new Error('busy');
   for (const r of res.gone ?? []) if (r.hasPhoto) await photos.delete(r.id).catch(() => {});
   return res.gone?.length ?? 0;
 }
