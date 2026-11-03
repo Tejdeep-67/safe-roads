@@ -1,10 +1,10 @@
 // SAMPLE DATA - not real reports.
 // I placed these points along real roads in Guntur and Vijayawada (route geometry from
 // OSRM) so the map and the route alerts have something to show on the first visit.
-// They are always labelled "sample" in the UI and can be hidden with the filter.
+// They are always labelled "sample" in the UI and can be hidden from the account menu.
 import type { Hazard } from './types';
 
-type Raw = Omit<Hazard, 'origin'>;
+type Raw = Pick<Hazard, 'id' | 'lat' | 'lng' | 'severity' | 'confidence' | 'source' | 'note' | 'createdAt'> & { confirmations: number };
 
 const raw: Raw[] = [
   {id: "s01", lat: 16.2921, lng: 80.454427, severity: "medium", confidence: 0.54, source: "photo", note: "Uneven surface after rain", createdAt: "2026-10-31T02:55:00+05:30", confirmations: 1},
@@ -57,7 +57,14 @@ const raw: Raw[] = [
   {id: "s48", lat: 16.291911, lng: 80.429763, severity: "high", confidence: 0.87, source: "camera", note: "Broken patch across the lane", createdAt: "2026-10-17T10:18:00+05:30", confirmations: 2},
 ];
 
-export const SAMPLE_HAZARDS: Hazard[] = raw.map((h) => ({ ...h, origin: 'sample' }));
+export const SAMPLE_HAZARDS: Hazard[] = raw.map(({ confirmations, ...h }) => ({
+  ...h,
+  potholes: confirmations > 2 ? 2 : 1,
+  by: null,
+  mine: false,
+  hasPhoto: false,
+  origin: 'sample',
+}));
 
 // handy demo route: Guntur NTR bus station -> RVR & JC College of Engineering
 export const DEMO_ROUTE = {

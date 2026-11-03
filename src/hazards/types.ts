@@ -1,8 +1,8 @@
 import type { Severity } from '../detection/postprocess';
 
 export type HazardSource = 'camera' | 'video' | 'photo' | 'manual';
-// where a report came from: the built-in sample set, this browser only, or the shared store
-export type HazardOrigin = 'sample' | 'local' | 'shared';
+// the built-in sample set, or a real report from the shared store
+export type HazardOrigin = 'sample' | 'shared';
 
 export interface Hazard {
   id: string;
@@ -10,12 +10,26 @@ export interface Hazard {
   lng: number;
   severity: Severity;
   confidence: number | null;
+  potholes: number;
   source: HazardSource;
-  note?: string;
+  note: string;
   createdAt: string;
-  confirmations: number;
+  by: string | null; // first name of the person who reported it
+  mine: boolean;
+  hasPhoto: boolean;
   origin: HazardOrigin;
-  thumb?: string; // small jpeg data url, only kept locally
+  localPhoto?: string; // data url kept in memory right after reporting, so the photo shows instantly
 }
 
-export type NewHazard = Pick<Hazard, 'lat' | 'lng' | 'severity' | 'confidence' | 'source' | 'note' | 'thumb'>;
+export interface NewHazard {
+  lat: number;
+  lng: number;
+  severity: Severity;
+  confidence: number | null;
+  potholes: number;
+  source: HazardSource;
+  note: string;
+  photo?: string; // jpeg data url
+}
+
+export const photoUrl = (h: Hazard) => h.localPhoto ?? (h.hasPhoto ? `/api/photos/${h.id}` : null);

@@ -1,140 +1,134 @@
-// Hazard reports live in three places:
-//  - the built-in sample set (read only)
-//  - localStorage, so your own reports survive a refresh even with no backend
-//  - the shared store behind /api/hazards (Netlify Function + Blobs), when it is reachable
-// If the function can't be reached (local dev, static preview, offline) the app just keeps
-// working from localStorage and says so in the UI.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+// Hazards on the map = the built-in sample set + real reports from /api/hazards
+// (Netlify Function + Blobs). The last good list is cached in localStorage so the map
+// still shows something when the server can't be reached, and the UI says so.
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
+import { api, ApiError } from '../lib/api';
 import { SAMPLE_HAZARDS } from './sample';
 import type { Hazard, NewHazard } from './types';
 
-const LS_KEY = 'saferoads.reports.v1';
-const API = '/api/hazards';
+const CACHE_KEY = 'saferoads.cache.v2';
+export type SyncStatus = 'loading' | 'ok' | 'offline';
 
-export type SyncStatus = 'checking' | 'shared' | 'local';
+type Server = Omit<Hazard, 'origin' | 'localPhoto'>;
+const fromServer = (h: Server): Hazard => ({ ...h, origin: 'shared' });
 
-function loadLocal(): Hazard[] {
+const state = {
+  shared: [] as Hazard[],
+  status: 'loading' as SyncStatus,
+  showSamples: localStorage.getItem('saferoads.samples') !== 'off',
+  version: 0,
+};
+const listeners = new Set<() => void>();
+function emit() {
+  state.version++;
+  listeners.forEach((l) => l());
+}
+
+function readCache(): Hazard[] {
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    const list = raw ? (JSON.parse(raw) as Hazard[]) : [];
-    return Array.isArray(list) ? list : [];
+    const list = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
+    return Array.isArray(list) ? list.map((h: Hazard) => ({ ...h, mine: false, localPhoto: undefined })) : [];
   } catch {
     return [];
   }
 }
-
-function saveLocal(list: Hazard[]) {
+function writeCache(list: Hazard[]) {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(list.slice(-300)));
+    localStorage.setItem(CACHE_KEY, JSON.stringify(list.slice(-1000).map(({ localPhoto, ...h }) => (void localPhoto, h))));
   } catch {
-    // storage full (thumbnails) - drop thumbnails and try again
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify(list.slice(-300).map((h) => ({ ...h, thumb: undefined }))));
-    } catch {
-      /* give up quietly */
-    }
+    /* storage full or disabled, not important */
   }
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 5000) {
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), ms);
-  try {
-    return await fetch(url, { ...init, signal: ctl.signal });
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-function isJson(res: Response) {
-  return (res.headers.get('content-type') || '').includes('application/json');
-}
-
-type Listener = () => void;
-
-// tiny shared state so every page sees the same list
-const state = {
-  local: [] as Hazard[],
-  shared: [] as Hazard[],
-  status: 'checking' as SyncStatus,
-  loaded: false,
-  listeners: new Set<Listener>(),
-};
-const emit = () => state.listeners.forEach((l) => l());
-
-async function refreshShared() {
-  try {
-    const res = await fetchWithTimeout(API);
-    // on a static host the SPA fallback answers with index.html, so check the type too
-    if (!res.ok || !isJson(res)) throw new Error('no api');
-    const body = await res.json();
-    state.shared = (body.hazards as Hazard[]).map((h) => ({ ...h, origin: 'shared' as const }));
-    state.status = 'shared';
-  } catch {
-    state.status = 'local';
-  }
-  emit();
-}
-
-function ensureLoaded() {
-  if (state.loaded) return;
-  state.loaded = true;
-  state.local = loadLocal();
-  refreshShared();
+let inflight: Promise<void> | null = null;
+export function refreshHazards() {
+  inflight ??= api<{ hazards: Server[] }>('/api/hazards', { timeoutMs: 9000 })
+    .then(({ hazards }) => {
+      // keep the in-memory photo of anything I just reported
+      const local = new Map(state.shared.filter((h) => h.localPhoto).map((h) => [h.id, h.localPhoto]));
+      state.shared = hazards.map(fromServer).map((h) => (local.has(h.id) ? { ...h, localPhoto: local.get(h.id) } : h));
+      state.status = 'ok';
+      writeCache(state.shared);
+    })
+    .catch(() => {
+      if (state.status !== 'ok') {
+        state.shared = readCache();
+        state.status = 'offline';
+      }
+    })
+    .finally(() => {
+      inflight = null;
+      emit();
+    });
+  return inflight;
 }
 
 export async function addHazard(input: NewHazard): Promise<Hazard> {
-  const local: Hazard = {
-    ...input,
-    id: crypto.randomUUID?.() ?? String(Date.now()),
-    createdAt: new Date().toISOString(),
-    confirmations: 1,
-    origin: 'local',
-  };
-  state.local = [...state.local, local];
-  saveLocal(state.local);
-  emit();
-  if (state.status === 'shared') {
-    try {
-      const body = { ...input, thumb: undefined }; // photos stay on the device (undefined is dropped by JSON)
-      const res = await fetchWithTimeout(API, { method: 'POST', body: JSON.stringify(body) });
-      if (res.ok && isJson(res)) {
-        const { hazard } = await res.json();
-        // remember which shared report this local one became
-        state.local = state.local.map((h) => (h.id === local.id ? { ...h, sharedId: hazard.id } as Hazard : h));
-        saveLocal(state.local);
-        await refreshShared();
-      }
-    } catch {
-      /* keep the local copy */
-    }
+  try {
+    const { hazard } = await api<{ hazard: Server }>('/api/hazards', { method: 'POST', json: input, timeoutMs: 30000 });
+    const h = { ...fromServer(hazard), localPhoto: input.photo };
+    state.shared = [...state.shared.filter((x) => x.id !== h.id), h];
+    state.status = 'ok';
+    writeCache(state.shared);
+    emit();
+    return h;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 0) state.status = 'offline';
+    emit();
+    throw e;
   }
-  return local;
 }
 
-export function removeLocalHazard(id: string) {
-  state.local = state.local.filter((h) => h.id !== id);
-  saveLocal(state.local);
+export async function deleteHazard(id: string) {
+  await api(`/api/hazards/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  state.shared = state.shared.filter((h) => h.id !== id);
+  writeCache(state.shared);
   emit();
 }
 
+// after sign-in/out the "mine" flags change, so reload
+export function forgetMine() {
+  state.shared = state.shared.map((h) => ({ ...h, mine: false }));
+  emit();
+}
+
+export function setShowSamples(on: boolean) {
+  state.showSamples = on;
+  localStorage.setItem('saferoads.samples', on ? 'on' : 'off');
+  emit();
+}
+
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
+
+let started = false;
 export function useHazards() {
-  const [, force] = useState(0);
+  const version = useSyncExternalStore(subscribe, () => state.version);
   useEffect(() => {
-    ensureLoaded();
-    const l = () => force((n) => n + 1);
-    state.listeners.add(l);
+    if (started) return;
+    started = true;
+    refreshHazards();
+    // pick up other people's reports while the app is open
+    const t = setInterval(() => document.visibilityState === 'visible' && refreshHazards(), 90_000);
+    const online = () => refreshHazards();
+    window.addEventListener('online', online);
     return () => {
-      state.listeners.delete(l);
+      clearInterval(t);
+      window.removeEventListener('online', online);
+      started = false;
     };
   }, []);
-  const refresh = useCallback(() => refreshShared(), []);
-  const all = useMemo(() => {
-    // a local report that was also saved to the shared store shows up once
-    const sharedIds = new Set(state.shared.map((h) => h.id));
-    const local = state.local.filter((h) => !sharedIds.has((h as Hazard & { sharedId?: string }).sharedId ?? ''));
-    return [...SAMPLE_HAZARDS, ...state.shared, ...local];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.local, state.shared]);
-  return { hazards: all, status: state.status, refresh, localCount: state.local.length, sharedCount: state.shared.length };
+  return useMemo(() => {
+    void version;
+    const all = state.showSamples ? [...SAMPLE_HAZARDS, ...state.shared] : state.shared;
+    return {
+      all,
+      shared: state.shared,
+      mine: state.shared.filter((h) => h.mine),
+      status: state.status,
+      showSamples: state.showSamples,
+    };
+  }, [version]);
 }
