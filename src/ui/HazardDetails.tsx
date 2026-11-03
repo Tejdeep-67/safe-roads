@@ -62,7 +62,7 @@ export default function HazardDetails({ hazard: h, myPos, nearby, onDirections, 
       </div>
 
       {img && imgOk && (
-        <img src={img} alt="Photo of the reported pothole" onError={() => setImgOk(false)} className="mb-3 aspect-[4/3] w-full rounded-xl bg-sunken object-cover" />
+        <img src={img} alt="Photo of the reported pothole" onError={() => setImgOk(false)} className="mb-3 aspect-[16/10] w-full rounded-xl bg-sunken object-cover" />
       )}
 
       <dl className="space-y-1.5 text-[14px]">

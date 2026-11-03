@@ -97,6 +97,7 @@ export default function Directions(p: Props) {
     <Sheet
       label="Directions"
       title="Directions"
+      mobileMax="max-h-[52dvh]"
       leading={
         <button onClick={p.onClose} className="-ml-1 rounded-full p-2 text-muted hover:bg-sunken" aria-label="Back to map">
           <ArrowLeft className="h-5 w-5" />

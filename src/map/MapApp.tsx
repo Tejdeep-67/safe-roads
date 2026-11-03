@@ -6,7 +6,7 @@ import type { Map as LeafletMap } from 'leaflet';
 import { Camera, LocateFixed, LocateOff, Locate, RefreshCw, WifiOff } from 'lucide-react';
 import L, { GUNTUR, TILE_URL, TILE_ATTRIBUTION } from './leaflet';
 import HazardPins from './HazardPins';
-import { meIcon, placeIcon } from './markers';
+import { meIcon, placeIcon, startIcon } from './markers';
 import { useAuth } from '../auth/AuthProvider';
 import { deleteHazard, refreshHazards, setShowSamples, useHazards } from '../hazards/store';
 import type { Hazard } from '../hazards/types';
@@ -139,7 +139,7 @@ export default function MapApp() {
     const map = mapRef.current;
     if (!map) return;
     const z = zoom ?? Math.max(map.getZoom(), 16);
-    const offset = isDesktop() ? L.point(-206, 0) : L.point(0, Math.round(window.innerHeight * 0.2));
+    const offset = isDesktop() ? L.point(-206, 0) : L.point(0, Math.round(window.innerHeight * 0.28));
     const target = map.unproject(map.project(ll, z).add(offset), z);
     if (reducedMotion()) map.setView(target, z);
     else map.flyTo(target, z, { duration: 0.6 });
@@ -149,7 +149,7 @@ export default function MapApp() {
     const map = mapRef.current;
     if (!map) return;
     const b = L.latLngBounds(r.coords.map(([a, c]) => L.latLng(a, c)));
-    map.fitBounds(b, isDesktop() ? { paddingTopLeft: [440, 80], paddingBottomRight: [80, 60] } : { paddingTopLeft: [24, 80], paddingBottomRight: [24, Math.round(window.innerHeight * 0.55)] });
+    map.fitBounds(b, isDesktop() ? { paddingTopLeft: [440, 80], paddingBottomRight: [80, 60] } : { paddingTopLeft: [24, 24], paddingBottomRight: [24, Math.round(window.innerHeight * 0.52) + 16] });
   }, []);
 
   const mapCenter = useCallback((): LatLng => {
@@ -304,11 +304,16 @@ export default function MapApp() {
         {driving && drive.position && <Marker position={drive.position} icon={meIcon} interactive={false} keyboard={false} />}
         {place && (panel.kind === 'place' || panel.kind === 'none') && <Marker position={[place.lat, place.lng]} icon={placeIcon} keyboard={false} />}
         {to && panel.kind === 'directions' && <Marker position={[to.lat, to.lng]} icon={placeIcon} keyboard={false} />}
+        {route && panel.kind === 'directions' && !driving && <Marker position={route.coords[0]} icon={startIcon} keyboard={false} interactive={false} />}
       </MapContainer>
 
       {/* top bar */}
       {!driving && !picking && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[1150] flex items-start gap-2 p-3 pt-[max(12px,env(safe-area-inset-top))]">
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 z-[1150] items-start gap-2 p-3 pt-[max(12px,env(safe-area-inset-top))] md:flex ${
+            panel.kind === 'directions' ? 'hidden' : 'flex'
+          }`}
+        >
           <div className="pointer-events-auto w-full md:w-auto">
             <SearchBar
               near={loc.pos ?? mapCenter()}

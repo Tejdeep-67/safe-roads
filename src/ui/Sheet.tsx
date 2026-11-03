@@ -12,9 +12,10 @@ interface Props {
   children: ReactNode;
   footer?: ReactNode;
   leading?: ReactNode; // e.g. a back button
+  mobileMax?: string; // max height on phones, as a Tailwind class
 }
 
-export default function Sheet({ label, title, subtitle, onClose, children, footer, leading }: Props) {
+export default function Sheet({ label, title, subtitle, onClose, children, footer, leading, mobileMax = 'max-h-[72dvh]' }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const startY = useRef<number | null>(null);
 
@@ -38,7 +39,7 @@ export default function Sheet({ label, title, subtitle, onClose, children, foote
   return (
     <section
       aria-label={label}
-      className="fixed inset-x-0 bottom-0 z-[1100] flex max-h-[72dvh] animate-sheet-up flex-col rounded-t-[22px] bg-surface shadow-sheet md:absolute md:inset-x-auto md:bottom-3 md:left-3 md:top-[76px] md:max-h-none md:w-[400px] md:animate-panel-in md:rounded-2xl md:shadow-panel"
+      className={`fixed inset-x-0 bottom-0 z-[1100] flex ${mobileMax} animate-sheet-up flex-col rounded-t-[22px] bg-surface shadow-sheet md:absolute md:inset-x-auto md:bottom-auto md:left-3 md:top-[76px] md:max-h-[calc(100%-88px)] md:w-[400px] md:animate-panel-in md:rounded-2xl md:shadow-panel`}
     >
       <div className="md:hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <button

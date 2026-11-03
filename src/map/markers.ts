@@ -46,3 +46,10 @@ export const placeIcon = L.divIcon({
   iconSize: [30, 40],
   iconAnchor: [15, 39],
 });
+
+export const startIcon = L.divIcon({
+  className: 'place-pin',
+  html: '<span style="display:block;width:16px;height:16px;border-radius:9999px;background:#fff;border:4px solid #1f2328;box-shadow:0 1px 4px rgb(0 0 0 / .35)"></span>',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});

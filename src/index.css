@@ -110,6 +110,11 @@
   border-radius: 12px !important;
   overflow: hidden;
 }
+/* keep the zoom buttons above "my location" and the Report button */
+.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+  margin-bottom: 150px !important;
+  margin-right: 20px !important;
+}
 .leaflet-control-zoom a {
   width: 40px !important;
   height: 40px !important;
