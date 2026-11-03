@@ -71,7 +71,7 @@ export function useDriveMode(route: LatLng[] | null, hazards: NearHazard<Hazard>
         const sev = next.item.severity;
         if (level < 1 && dist <= WARN_AT_M) {
           warned.current.set(next.item.id, 1);
-          if (voiceRef.current) speak(`${sev === 'high' ? 'Careful. ' : ''}Pothole ahead in ${Math.round(dist / 10) * 10} metres. ${sev} severity.`);
+          if (voiceRef.current) speak(`${sev === 'high' ? 'Careful. Big pothole' : 'Pothole'} ahead in ${Math.round(dist / 10) * 10} metres.`);
           navigator.vibrate?.([200, 100, 200]);
         } else if (level < 2 && dist <= CLOSE_AT_M) {
           warned.current.set(next.item.id, 2);
