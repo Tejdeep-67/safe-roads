@@ -1,9 +1,9 @@
 import type { Detection, Severity } from './postprocess';
 
 export const SEVERITY_COLOR: Record<Severity, string> = {
-  low: '#facc15',
-  medium: '#fb923c',
-  high: '#f43f5e',
+  low: '#e0a800',
+  medium: '#f26b1d',
+  high: '#dc2f2f',
 };
 
 export interface DrawItem {
@@ -73,7 +73,7 @@ export function drawDetections(
     ctx.fillStyle = color;
     roundRect(ctx, x, ty, tw, 18, 5);
     ctx.fill();
-    ctx.fillStyle = '#111113';
+    ctx.fillStyle = '#ffffff';
     ctx.fillText(text, x + 6, ty + 13);
     ctx.restore();
   }
