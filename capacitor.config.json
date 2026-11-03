@@ -1,0 +1,22 @@
+{
+  "appId": "in.tejdeep.saferoads",
+  "appName": "Safe Roads",
+  "webDir": "app-shell",
+  "server": {
+    "url": "https://thesaferoads.netlify.app",
+    "errorPath": "offline.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "appendUserAgent": "SafeRoadsApp/1.0",
+    "backgroundColor": "#ffffff"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "showSpinner": false
+    }
+  }
+}
