@@ -171,3 +171,7 @@ Next I'd like to add password reset by email, a "confirmed by N people" filter f
 - Training data of the model: [Pothole Image Segmentation Dataset](https://www.kaggle.com/datasets/farzadnekouei/pothole-image-segmentation-dataset) (Kaggle).
 - Map data © OpenStreetMap contributors. Base map by [OpenFreeMap](https://openfreemap.org) (OpenMapTiles schema, drawn with MapLibre; plain OSM tiles as a fallback). Place search by Photon (komoot) and Nominatim, routing by OSRM.
 - Built with React, TypeScript, Vite, Tailwind CSS, Leaflet, MapLibre, ONNX Runtime Web and Ultralytics YOLOv8.
+
+## License
+
+My code is under the [MIT License](LICENSE). The things I didn't make keep their own licences: the model weights come from Ultralytics YOLOv8, which is AGPL-3.0, and from a dataset with its own terms; the demo photos, demo video and test data are under the CC licences listed in Credits; map data is © OpenStreetMap contributors (ODbL).
