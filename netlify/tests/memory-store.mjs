@@ -25,6 +25,14 @@ export function memoryStore() {
     async set(key, value, opts) {
       return put(key, value, opts);
     },
+    async getMetadata(key) {
+      if (!data.has(key)) return null;
+      const e = data.get(key);
+      return { etag: e.etag, metadata: e.metadata };
+    },
+    async list({ prefix = '' } = {}) {
+      return { blobs: [...data.keys()].filter((k) => k.startsWith(prefix)).map((key) => ({ key, etag: data.get(key).etag })) };
+    },
     async delete(key) {
       data.delete(key);
     },
