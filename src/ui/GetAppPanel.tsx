@@ -67,7 +67,7 @@ export default function GetAppPanel({ onClose }: { onClose: () => void }) {
   );
 
   return (
-    <Sheet label="Get the app" title="Get the app" subtitle="Report potholes and get warned on your drive, right from your home screen." onClose={onClose}>
+    <Sheet label="Get the app" title="Get the app" subtitle="Report road hazards and get warned on your drive, right from your home screen." onClose={onClose}>
       <div className="space-y-3 pt-1">
         {/* on an iPhone the install steps matter more, so show them first */}
         {ios ? (

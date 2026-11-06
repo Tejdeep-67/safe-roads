@@ -1,3 +1,4 @@
+import { kindLabel } from '../hazards/kinds';
 import { AlertTriangle, CheckCircle2, Volume2, VolumeX, X } from 'lucide-react';
 import type { DriveState } from '../geo/useDriveMode';
 import { formatDistance } from '../geo/geo';
@@ -32,12 +33,12 @@ export default function DriveOverlay({ drive, total, hazardCount, voice, onVoice
               <>
                 <p className="text-[26px] font-bold leading-none">{formatDistance(dist)}</p>
                 <p className="mt-1 text-[15px] font-medium opacity-95">
-                  {SEV_LABEL[next.item.severity]} pothole ahead{next.item.origin === 'sample' ? ' (sample)' : ''}
+                  {SEV_LABEL[next.item.severity]} {kindLabel(next.item.type).toLowerCase()} ahead
                 </p>
               </>
             ) : (
               <>
-                <p className="text-[20px] font-bold leading-tight">No potholes ahead</p>
+                <p className="text-[20px] font-bold leading-tight">Nothing reported ahead</p>
                 <p className="mt-0.5 text-[14px] opacity-90">{hazardCount ? `${drive.passed} of ${hazardCount} passed` : 'Nothing reported on this route'}</p>
               </>
             )}

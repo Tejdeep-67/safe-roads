@@ -155,20 +155,38 @@
   border-radius: 9999px;
   background: #fff;
 }
-/* sample pins: same colours, faded and without the centre dot */
-.hz-pin.sample span {
-  opacity: 0.6;
+/* reports the community marked as fixed: faded, no centre dot */
+.hz-pin.fixed span {
+  opacity: 0.55;
   border-width: 2px;
   width: 18px;
   height: 18px;
   margin: 2px;
+  filter: grayscale(0.6);
 }
-.hz-pin.sample span::after {
+.hz-pin.fixed span::after {
   display: none;
+}
+/* verified by at least two people: a dark ring around the white edge */
+.hz-pin.verified span {
+  box-shadow: 0 0 0 2px #1f2328, 0 1px 4px rgb(0 0 0 / 0.35);
 }
 .hz-pin.selected span {
   transform: scale(1.35);
   box-shadow: 0 0 0 6px rgb(37 87 214 / 0.25), 0 1px 4px rgb(0 0 0 / 0.35);
+}
+.osm-feature {
+  background: none;
+  border: none;
+}
+.osm-feature span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: #5b6475;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
 }
 .hz-cluster {
   background: none;

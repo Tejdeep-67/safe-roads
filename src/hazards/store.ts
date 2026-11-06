@@ -1,21 +1,22 @@
-// Hazards on the map = the built-in sample set + real reports from /api/hazards
+// Hazards on the map = real reports from /api/hazards
 // (Netlify Function + Blobs). The last good list is cached in localStorage so the map
 // still shows something when the server can't be reached, and the UI says so.
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { api, ApiError } from '../lib/api';
-import { SAMPLE_HAZARDS } from './sample';
-import type { Hazard, NewHazard } from './types';
+import { applyFilters, DEFAULT_FILTERS, parseFilters, type MapFilters } from './filters';
+import type { Hazard, MyVote, NewHazard } from './types';
 
-const CACHE_KEY = 'saferoads.cache.v2';
+const CACHE_KEY = 'saferoads.cache.v3';
+const FILTER_KEY = 'saferoads.filters';
 export type SyncStatus = 'loading' | 'ok' | 'offline';
 
-type Server = Omit<Hazard, 'origin' | 'localPhoto'>;
-const fromServer = (h: Server): Hazard => ({ ...h, origin: 'shared' });
+type Server = Omit<Hazard, 'localPhoto'>;
+const fromServer = (h: Server): Hazard => ({ ...h });
 
 const state = {
   shared: [] as Hazard[],
   status: 'loading' as SyncStatus,
-  showSamples: localStorage.getItem('saferoads.samples') !== 'off',
+  filters: parseFilters(localStorage.getItem(FILTER_KEY)) as MapFilters,
   version: 0,
 };
 const listeners = new Set<() => void>();
@@ -88,14 +89,41 @@ export async function deleteHazard(id: string) {
 
 // after sign-in/out the "mine" flags change, so reload
 export function forgetMine() {
-  state.shared = state.shared.map((h) => ({ ...h, mine: false }));
+  state.shared = state.shared.map((h) => ({ ...h, mine: false, myVote: null }));
   emit();
 }
 
-export function setShowSamples(on: boolean) {
-  state.showSamples = on;
-  localStorage.setItem('saferoads.samples', on ? 'on' : 'off');
+export function setFilters(f: MapFilters) {
+  state.filters = f;
+  localStorage.setItem(FILTER_KEY, JSON.stringify(f));
   emit();
+}
+export const resetFilters = () => setFilters(DEFAULT_FILTERS);
+
+function replaceOne(h: Server) {
+  const local = state.shared.find((x) => x.id === h.id)?.localPhoto;
+  const next = { ...fromServer(h), localPhoto: local };
+  state.shared = state.shared.some((x) => x.id === h.id) ? state.shared.map((x) => (x.id === h.id ? next : x)) : [...state.shared, next];
+  writeCache(state.shared);
+  emit();
+  return next;
+}
+
+// confirm / fixed / flag a report made by someone else. Returns the report as the server now sees it.
+export async function voteHazard(id: string, vote: Exclude<MyVote, null>, reason?: string): Promise<Hazard> {
+  const { hazard } = await api<{ hazard: Server }>(`/api/hazards/${encodeURIComponent(id)}/vote`, { method: 'POST', json: { vote, reason } });
+  if (vote === 'flag') {
+    // flagged by me: it stays visible to others until enough people flag it, but I don't need to see it again
+    state.shared = state.shared.filter((h) => h.id !== id);
+    writeCache(state.shared);
+    emit();
+    return fromServer(hazard);
+  }
+  return replaceOne(hazard);
+}
+export async function unvoteHazard(id: string): Promise<Hazard> {
+  const { hazard } = await api<{ hazard: Server }>(`/api/hazards/${encodeURIComponent(id)}/vote`, { method: 'DELETE' });
+  return replaceOne(hazard);
 }
 
 const subscribe = (l: () => void) => {
@@ -122,13 +150,14 @@ export function useHazards() {
   }, []);
   return useMemo(() => {
     void version;
-    const all = state.showSamples ? [...SAMPLE_HAZARDS, ...state.shared] : state.shared;
+    const all = state.shared;
     return {
-      all,
-      shared: state.shared,
-      mine: state.shared.filter((h) => h.mine),
+      all, // every report I know about, whatever its status
+      open: all.filter((h) => h.status === 'open'), // what routes and drive mode warn about
+      pins: applyFilters(all, state.filters), // what is drawn on the map
+      mine: all.filter((h) => h.mine),
       status: state.status,
-      showSamples: state.showSamples,
+      filters: state.filters,
     };
   }, [version]);
 }

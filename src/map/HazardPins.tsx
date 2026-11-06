@@ -5,6 +5,7 @@ import { useMap } from 'react-leaflet';
 import L from './plugins';
 import type { Hazard } from '../hazards/types';
 import { clusterIcon, hazardIcon, SEV_LABEL } from './markers';
+import { kindLabel } from '../hazards/kinds';
 
 interface Props {
   hazards: Hazard[];
@@ -42,8 +43,8 @@ export default function HazardPins({ hazards, selectedId, onSelect }: Props) {
       const m = L.marker([h.lat, h.lng], {
         icon: hazardIcon(h, h.id === selectedId),
         keyboard: true,
-        title: `${SEV_LABEL[h.severity]} pothole${h.origin === 'sample' ? ' (sample)' : ''}`,
-        alt: `${SEV_LABEL[h.severity]} pothole`,
+        title: `${SEV_LABEL[h.severity]} ${kindLabel(h.type).toLowerCase()}${h.status === 'resolved' ? ' (fixed)' : ''}`,
+        alt: `${SEV_LABEL[h.severity]} ${kindLabel(h.type).toLowerCase()}`,
         riseOnHover: true,
         zIndexOffset: h.id === selectedId ? 1000 : 0,
         // read by the cluster icon to colour the ring

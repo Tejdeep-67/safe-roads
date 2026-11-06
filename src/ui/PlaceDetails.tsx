@@ -15,14 +15,13 @@ interface Props {
 export default function PlaceDetails({ place, myPos, hazards, onDirections, onClose }: Props) {
   const here: LatLng = [place.lat, place.lng];
   const near = hazards.filter((h) => haversine(here, [h.lat, h.lng]) <= 1000);
-  const real = near.filter((h) => h.origin !== 'sample').length;
   const dist = myPos ? haversine(myPos, here) : null;
   return (
     <Sheet label="Place" title={place.label} subtitle={place.detail} onClose={onClose}>
       <p className="text-[14px] text-muted">
         {near.length === 0
-          ? 'No potholes reported within 1 km.'
-          : `${near.length} pothole${near.length > 1 ? 's' : ''} within 1 km${real < near.length ? ` (${near.length - real} sample)` : ''}.`}
+          ? 'No hazards reported within 1 km.'
+          : `${near.length} reported ${near.length > 1 ? 'hazards' : 'hazard'} within 1 km.`}
         {dist !== null && ` ${formatDistance(dist)} from you.`}
       </p>
       <div className="mt-4">

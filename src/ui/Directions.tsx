@@ -1,3 +1,4 @@
+import { kindLabel } from '../hazards/kinds';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowUpDown, Car, CircleDot, Loader2, LocateFixed, MapPin, Navigation2 } from 'lucide-react';
 import type { Place, RouteResult } from '../geo/services';
@@ -197,7 +198,7 @@ export default function Directions(p: Props) {
 
           <h3 className="mb-1 mt-5 text-sm font-semibold text-ink">On this route (within {ROUTE_BUFFER_M} m)</h3>
           {near.length === 0 ? (
-            <p className="text-sm text-muted">No reported potholes on this route. Drive safe anyway.</p>
+            <p className="text-sm text-muted">No reported hazards on this route. Drive safe anyway.</p>
           ) : (
             <ol className="divide-y divide-line">
               {near.map((n) => (
@@ -206,7 +207,7 @@ export default function Directions(p: Props) {
                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: SEV_COLOR[n.item.severity] }} />
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] text-ink">
-                        {SEV_LABEL[n.item.severity]} pothole{n.item.origin === 'sample' ? ' (sample)' : ''}
+                        {SEV_LABEL[n.item.severity]} {kindLabel(n.item.type).toLowerCase()}
                       </span>
                       {n.item.note && <span className="block truncate text-[13px] text-muted">{n.item.note}</span>}
                     </span>

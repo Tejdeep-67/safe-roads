@@ -6,6 +6,7 @@ export interface User {
   name: string;
   email: string;
   createdAt: string;
+  moderator?: boolean;
 }
 
 type Status = 'loading' | 'ready' | 'offline';

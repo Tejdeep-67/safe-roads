@@ -1,4 +1,4 @@
-// Report a pothole in a few taps:
+// Report a road hazard in a few taps:
 // photo (camera or gallery) -> the model looks for potholes -> location from the photo's
 // GPS, else the phone's GPS, else you place it on the map -> confirm.
 // You can also report without a photo, so reporting never dead-ends.
@@ -10,7 +10,8 @@ import { gpsFromPhoto, loadBitmap, shrinkPhoto } from '../report/photo';
 import type { LatLng } from '../geo/geo';
 import type { MyLocation } from '../geo/useMyLocation';
 import { addHazard } from '../hazards/store';
-import type { Hazard } from '../hazards/types';
+import type { Hazard, HazardType } from '../hazards/types';
+import { KINDS, TYPE_ORDER } from '../hazards/kinds';
 import { ApiError } from '../lib/api';
 import { SEV_COLOR, SEV_LABEL } from '../map/markers';
 import Sheet from './Sheet';
@@ -43,6 +44,7 @@ export default function ReportFlow({ hidden, loc, onPickOnMap, onDone, onNeedSig
   const [detecting, setDetecting] = useState<string | null>(null);
   const [detError, setDetError] = useState<string | null>(null);
   const [severity, setSeverity] = useState<Severity>('medium');
+  const [type, setType] = useState<HazardType>('pothole');
   const [place, setPlace] = useState<Loc | null>(null);
   const [locating, setLocating] = useState(false);
   const [note, setNote] = useState('');
@@ -155,6 +157,7 @@ export default function ReportFlow({ hidden, loc, onPickOnMap, onDone, onNeedSig
       const h = await addHazard({
         lat: place.ll[0],
         lng: place.ll[1],
+        type,
         severity,
         confidence: top,
         potholes: dets?.length ?? 0,
@@ -167,8 +170,8 @@ export default function ReportFlow({ hidden, loc, onPickOnMap, onDone, onNeedSig
       if (e instanceof ApiError && e.status === 401) {
         onNeedSignIn();
       } else if (e instanceof ApiError && e.status === 409 && (e.data as { hazard?: Hazard })?.hazard) {
-        setDup({ ...(e.data as { hazard: Hazard }).hazard, origin: 'shared' });
-        setError('You already reported a pothole at this spot.');
+        setDup((e.data as { hazard: Hazard }).hazard);
+        setError('You already reported this kind of hazard at this spot.');
       } else setError((e as Error).message);
     } finally {
       setBusy(false);
@@ -210,7 +213,7 @@ export default function ReportFlow({ hidden, loc, onPickOnMap, onDone, onNeedSig
   if (step === 'choose') {
     return (
       <div className={hidden ? 'hidden' : ''}>
-        <Sheet label="Report a pothole" title="Report a pothole" subtitle="A photo helps others see how bad it is." onClose={onClose}>
+        <Sheet label="Report a hazard" title="Report a hazard" subtitle="A photo helps others see how bad it is." onClose={onClose}>
           {fileInputs}
           <div className="grid grid-cols-2 gap-2">
             <button className="flex flex-col items-center gap-2 rounded-2xl bg-brand-600 px-3 py-5 text-white hover:bg-brand-700" onClick={() => cameraRef.current?.click()}>
@@ -247,13 +250,13 @@ export default function ReportFlow({ hidden, loc, onPickOnMap, onDone, onNeedSig
   return (
     <div className={hidden ? 'hidden' : ''}>
       <Sheet
-        label="Report a pothole"
-        title="Report a pothole"
+        label="Report a hazard"
+        title="Report a hazard"
         onClose={onClose}
         footer={
           <button className="btn-primary w-full py-3 text-[15px]" disabled={!place || busy || !!detecting} onClick={submit}>
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {busy ? 'Sending…' : place ? 'Report pothole' : 'Set the location first'}
+            {busy ? 'Sending…' : place ? 'Send report' : 'Set the location first'}
           </button>
         }
       >
@@ -300,6 +303,26 @@ export default function ReportFlow({ hidden, loc, onPickOnMap, onDone, onNeedSig
             Use a different photo
           </button>
         )}
+
+        <fieldset className="mt-4">
+          <legend className="field-label">What is it?</legend>
+          <div className="flex flex-wrap gap-2">
+            {TYPE_ORDER.map((t) => (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={type === t}
+                onClick={() => setType(t)}
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                  type === t ? 'border-transparent bg-brand-600 text-white' : 'border-line text-ink hover:bg-sunken'
+                }`}
+              >
+                {KINDS[t].label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[13px] text-muted">{KINDS[type].hint}</p>
+        </fieldset>
 
         <fieldset className="mt-4">
           <legend className="field-label">How bad is it?</legend>

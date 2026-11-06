@@ -1,3 +1,4 @@
+import { kindLabel } from '../hazards/kinds';
 import { useEffect, useState } from 'react';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
@@ -49,9 +50,9 @@ export default function MyReports({ mine, myPos, onOpen, onReport, onClose }: Pr
     <Sheet label="My reports" title="My reports" subtitle={user ? `${list.length} report${list.length === 1 ? '' : 's'} by ${user.name}` : undefined} onClose={onClose}>
       {list.length === 0 ? (
         <div className="py-6 text-center">
-          <p className="text-[15px] text-muted">You haven't reported any potholes yet.</p>
+          <p className="text-[15px] text-muted">You haven't reported any hazards yet.</p>
           <button className="btn-primary mt-4" onClick={onReport}>
-            <Camera className="h-4 w-4" /> Report a pothole
+            <Camera className="h-4 w-4" /> Report a hazard
           </button>
         </div>
       ) : (
@@ -71,9 +72,10 @@ export default function MyReports({ mine, myPos, onOpen, onReport, onClose }: Pr
                     )}
                     <span className="min-w-0">
                       <span className="block text-[15px] font-medium text-ink">
-                        {SEV_LABEL[h.severity]} pothole{h.potholes > 1 ? ` ×${h.potholes}` : ''}
+                        {SEV_LABEL[h.severity]} {kindLabel(h.type).toLowerCase()}{h.potholes > 1 ? ` ×${h.potholes}` : ''}
                       </span>
                       <span className="block truncate text-[13px] text-muted">
+                        {h.status === 'resolved' ? 'Fixed · ' : h.verified ? `Verified by ${h.confirmations} · ` : 'Not yet confirmed · '}
                         {timeAgo(h.createdAt)}
                         {myPos ? ` · ${formatDistance(haversine(myPos, [h.lat, h.lng]))} away` : ''}
                         {h.note ? ` · ${h.note}` : ''}
@@ -125,7 +127,7 @@ export default function MyReports({ mine, myPos, onOpen, onReport, onClose }: Pr
               }
             }}
           >
-            <p className="text-sm text-ink">This deletes your account and all your reports. Enter your password to confirm.</p>
+            <p className="text-sm text-ink">This deletes your account, all your reports and your confirmations of other people's reports. Enter your password to confirm.</p>
             <input className="input" type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} aria-label="Password" required />
             {err && <p className="text-sm text-red-600">{err}</p>}
             <div className="flex gap-2">

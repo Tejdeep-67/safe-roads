@@ -37,8 +37,9 @@ export default function AboutPanel({ onClose, onGetApp }: { onClose: () => void;
         <section>
           <h3 className="font-semibold">Credits</h3>
           <p className="mt-1 text-muted">
-            Map data and tiles © OpenStreetMap contributors, search by Photon (komoot) and Nominatim, routes by OSRM. Smaller, faded pins (no white centre) are sample data
-            placed by me so the map isn't empty, not real reports.
+            Map data and tiles © OpenStreetMap contributors, search by Photon (komoot) and Nominatim, routes by OSRM. Every pin on the map is a real report from a real
+            account; there is no sample data. The optional "Road bumps from OpenStreetMap" layer shows speed bumps that mapmakers recorded in OpenStreetMap
+            (ODbL licence), it is not made of Safe Roads reports.
           </p>
         </section>
         <div className="flex flex-wrap gap-2 pt-1">

@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Download, Eye, EyeOff, Info, ListChecks, LogIn, LogOut, Moon, ScanSearch, Sun, UserRound } from 'lucide-react';
+import { BarChart3, Download, Info, Layers, ListChecks, LogIn, LogOut, Moon, ScanSearch, ShieldCheck, Sun, UserRound } from 'lucide-react';
 import type { User } from '../auth/AuthProvider';
 
 interface Props {
   user: User | null;
   dark: boolean;
-  showSamples: boolean;
+  filterCount: number;
   onSignIn: () => void;
   onSignOut: () => void;
   onMyReports: () => void;
   onAbout: () => void;
   onGetApp?: () => void; // left out inside the Android app
   onToggleDark: () => void;
-  onToggleSamples: () => void;
+  onLayers: () => void;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -92,10 +92,18 @@ export default function AccountMenu(p: Props) {
           <button role="menuitemcheckbox" aria-checked={p.dark} className="menu-item" onClick={run(p.onToggleDark)}>
             {p.dark ? <Sun className="h-5 w-5 text-muted" /> : <Moon className="h-5 w-5 text-muted" />} {p.dark ? 'Light map' : 'Dark map'}
           </button>
-          <button role="menuitemcheckbox" aria-checked={p.showSamples} className="menu-item" onClick={run(p.onToggleSamples)}>
-            {p.showSamples ? <EyeOff className="h-5 w-5 text-muted" /> : <Eye className="h-5 w-5 text-muted" />}
-            {p.showSamples ? 'Hide sample pins' : 'Show sample pins'}
+          <button role="menuitem" className="menu-item" onClick={run(p.onLayers)}>
+            <Layers className="h-5 w-5 text-muted" /> Layers & filters
+            {p.filterCount > 0 && <span className="ml-auto rounded-full bg-brand-600 px-2 py-0.5 text-xs font-semibold text-white">{p.filterCount}</span>}
           </button>
+          <Link role="menuitem" to="/data" className="menu-item" onClick={() => setOpen(false)}>
+            <BarChart3 className="h-5 w-5 text-muted" /> Data for authorities
+          </Link>
+          {p.user?.moderator && (
+            <Link role="menuitem" to="/moderate" className="menu-item" onClick={() => setOpen(false)}>
+              <ShieldCheck className="h-5 w-5 text-muted" /> Moderation
+            </Link>
+          )}
           {p.onGetApp && (
             <button role="menuitem" className="menu-item" onClick={run(p.onGetApp)}>
               <Download className="h-5 w-5 text-muted" /> Get the app

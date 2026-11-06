@@ -1,14 +1,16 @@
 import L from 'leaflet';
 import type { Severity } from '../detection/postprocess';
 import type { Hazard } from '../hazards/types';
+import { kindLabel } from '../hazards/kinds';
 
 export const SEV_COLOR: Record<Severity, string> = { low: '#e0a800', medium: '#f26b1d', high: '#dc2f2f' };
+export { kindLabel };
 export const SEV_LABEL: Record<Severity, string> = { low: 'Minor', medium: 'Moderate', high: 'Severe' };
 const RANK: Record<Severity, number> = { low: 0, medium: 1, high: 2 };
 
 const iconCache = new Map<string, L.DivIcon>();
-export function hazardIcon(h: Pick<Hazard, 'severity' | 'origin' | 'mine'>, selected = false) {
-  const cls = ['hz-pin', h.origin === 'sample' ? 'sample' : '', h.mine ? 'mine' : '', selected ? 'selected' : ''].filter(Boolean).join(' ');
+export function hazardIcon(h: Pick<Hazard, 'severity' | 'status' | 'verified' | 'mine'>, selected = false) {
+  const cls = ['hz-pin', h.status === 'resolved' ? 'fixed' : '', h.verified && h.status !== 'resolved' ? 'verified' : '', h.mine ? 'mine' : '', selected ? 'selected' : ''].filter(Boolean).join(' ');
   const key = `${h.severity}|${cls}`;
   if (!iconCache.has(key)) {
     iconCache.set(

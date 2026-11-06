@@ -7,9 +7,12 @@ import { Camera, Download, LocateFixed, LocateOff, Locate, RefreshCw, WifiOff, X
 import L, { GUNTUR } from './leaflet';
 import BaseMap from './BaseMap';
 import HazardPins from './HazardPins';
+import RoadFeatures from './RoadFeatures';
 import { meIcon, placeIcon, startIcon } from './markers';
 import { useAuth } from '../auth/AuthProvider';
-import { deleteHazard, refreshHazards, setShowSamples, useHazards } from '../hazards/store';
+import { deleteHazard, refreshHazards, setFilters, unvoteHazard, voteHazard, useHazards } from '../hazards/store';
+import { activeFilterCount } from '../hazards/filters';
+import { kindLabel, TYPE_ORDER } from '../hazards/kinds';
 import type { Hazard } from '../hazards/types';
 import { useMyLocation } from '../geo/useMyLocation';
 import { useDriveMode } from '../geo/useDriveMode';
@@ -24,6 +27,7 @@ import Directions, { routeHazards, type From } from '../ui/Directions';
 import DriveOverlay from '../ui/DriveOverlay';
 import MyReports from '../ui/MyReports';
 import AboutPanel from '../ui/AboutPanel';
+import LayersPanel, { type OsmStatus } from '../ui/LayersPanel';
 import GetAppPanel from '../ui/GetAppPanel';
 import { inAndroidApp, isStandalone } from '../lib/install';
 import { toast } from '../ui/Toaster';
@@ -39,6 +43,7 @@ type Panel =
   | { kind: 'report' }
   | { kind: 'mine' }
   | { kind: 'about' }
+  | { kind: 'layers' }
   | { kind: 'app' }
   | { kind: 'auth'; reason?: string; then?: 'report' | 'mine' };
 
@@ -93,6 +98,7 @@ export default function MapApp() {
   const [driving, setDriving] = useState(false);
   const [voice, setVoice] = useState(true);
   const [picking, setPicking] = useState<{ done: (ll: LatLng | null) => void } | null>(null);
+  const [osm, setOsm] = useState<{ status: OsmStatus; count?: number }>({ status: 'idle' });
   const [appPill, setAppPill] = useState(() => showAppLinks() && localStorage.getItem(APP_PILL_KEY) !== 'hidden');
   const mapRef = useRef<LeafletMap | null>(null);
   const view = useMemo(initialView, []);
@@ -168,16 +174,16 @@ export default function MapApp() {
   // ---------- selected things ----------
   const selected = panel.kind === 'hazard' ? hz.all.find((h) => h.id === panel.id) ?? null : null;
   useEffect(() => {
-    // the pin was deleted (by me, elsewhere) or samples were hidden
+    // the pin was deleted (by me, elsewhere) or flagged away
     if (panel.kind === 'hazard' && !selected && hz.status !== 'loading') setPanelState({ kind: 'none' });
   }, [panel, selected, hz.status]);
 
   const nearbyCount = selected
-    ? hz.all.filter((h) => h.id !== selected.id && h.origin === selected.origin && haversine([h.lat, h.lng], [selected.lat, selected.lng]) <= 15).length
+    ? hz.all.filter((h) => h.id !== selected.id && haversine([h.lat, h.lng], [selected.lat, selected.lng]) <= 15).length
     : 0;
 
   const route = routes[routeIdx];
-  const onRoute = useMemo(() => routeHazards(route, hz.all), [route, hz.all]);
+  const onRoute = useMemo(() => routeHazards(route, hz.open), [route, hz.open]);
   const routeCoords = useMemo(() => route?.coords ?? null, [route]);
   const { drive, startGps, startSim, stop } = useDriveMode(routeCoords, onRoute, { voice });
 
@@ -202,7 +208,7 @@ export default function MapApp() {
   };
 
   const openReport = () => {
-    if (!user) setPanel({ kind: 'auth', reason: 'You need an account to report a pothole. It takes a few seconds.', then: 'report' });
+    if (!user) setPanel({ kind: 'auth', reason: 'You need an account to report a road hazard. It takes a few seconds.', then: 'report' });
     else setPanel({ kind: 'report' });
   };
 
@@ -252,7 +258,7 @@ export default function MapApp() {
     <AccountMenu
       user={user}
       dark={dark}
-      showSamples={hz.showSamples}
+      filterCount={activeFilterCount(hz.filters)}
       onSignIn={() => setPanel({ kind: 'auth' })}
       onSignOut={async () => {
         await signOut();
@@ -263,7 +269,7 @@ export default function MapApp() {
       onAbout={() => setPanel({ kind: 'about' })}
       onGetApp={showAppLinks() ? () => setPanel({ kind: 'app' }) : undefined}
       onToggleDark={() => setDark((d) => !d)}
-      onToggleSamples={() => setShowSamples(!hz.showSamples)}
+      onLayers={() => setPanel({ kind: 'layers' })}
     />
   );
 
@@ -300,7 +306,8 @@ export default function MapApp() {
           </>
         )}
 
-        <HazardPins hazards={hz.all} selectedId={selected?.id ?? null} onSelect={(h) => !picking && openHazard(h)} />
+        <RoadFeatures enabled={hz.filters.roadFeatures} onStatus={(status, count) => setOsm({ status, count })} />
+        <HazardPins hazards={hz.pins} selectedId={selected?.id ?? null} onSelect={(h) => !picking && openHazard(h)} />
 
         {loc.pos && !driving && (
           <>
@@ -388,7 +395,7 @@ export default function MapApp() {
             className="flex h-14 items-center gap-2 rounded-2xl bg-brand-600 pl-4 pr-5 text-[15px] font-semibold text-white shadow-float transition hover:bg-brand-700 active:scale-[.98]"
             onClick={openReport}
           >
-            <Camera className="h-5 w-5" /> Report pothole
+            <Camera className="h-5 w-5" /> Report hazard
           </button>
         </div>
       )}
@@ -404,7 +411,7 @@ export default function MapApp() {
           </div>
           <div className="pointer-events-none absolute inset-x-0 top-0 z-[1150] p-3 pt-[max(12px,env(safe-area-inset-top))]">
             <p className="mx-auto max-w-sm rounded-2xl bg-[#1f2328] px-4 py-3 text-center text-[14px] text-white shadow-float">
-              Move the map so the pin sits on the pothole, or tap the spot.
+              Move the map so the pin sits on the hazard, or tap the spot.
             </p>
           </div>
           <div className="absolute inset-x-0 bottom-0 z-[1150] p-3 pb-[max(16px,env(safe-area-inset-bottom))]">
@@ -440,8 +447,24 @@ export default function MapApp() {
               hazard={selected}
               myPos={loc.pos}
               nearby={nearbyCount}
+              signedIn={!!user}
+              onNeedSignIn={() => setPanel({ kind: 'auth', reason: 'Sign in to confirm or flag reports.' })}
+              onVote={async (h, vote, reason) => {
+                try {
+                  if (vote === 'clear') await unvoteHazard(h.id);
+                  else {
+                    const next = await voteHazard(h.id, vote, reason);
+                    if (vote === 'flag') {
+                      toast('Thanks, we flagged it for review.', 'success');
+                      setPanelState({ kind: 'none' });
+                    } else toast(vote === 'confirm' ? 'Thanks for confirming.' : next.status === 'resolved' ? 'Thanks, it is now marked as fixed.' : 'Thanks, noted. One more person is needed to close it.', 'success');
+                  }
+                } catch (e) {
+                  toast((e as Error).message, 'error');
+                }
+              }}
               onClose={closePanel}
-              onDirections={(h) => directionsTo({ label: 'Pothole', detail: `${h.lat.toFixed(5)}, ${h.lng.toFixed(5)}`, lat: h.lat, lng: h.lng })}
+              onDirections={(h) => directionsTo({ label: kindLabel(h.type), detail: `${h.lat.toFixed(5)}, ${h.lng.toFixed(5)}`, lat: h.lat, lng: h.lng })}
               onDelete={async (h) => {
                 try {
                   await deleteHazard(h.id);
@@ -454,14 +477,14 @@ export default function MapApp() {
             />
           )}
           {panel.kind === 'place' && place && (
-            <PlaceDetails place={place} myPos={loc.pos} hazards={hz.all} onClose={closePanel} onDirections={() => directionsTo(place)} />
+            <PlaceDetails place={place} myPos={loc.pos} hazards={hz.open} onClose={closePanel} onDirections={() => directionsTo(place)} />
           )}
           {panel.kind === 'directions' && (
             <Directions
               from={from}
               to={to}
               loc={loc}
-              hazards={hz.all}
+              hazards={hz.open}
               routes={routes}
               routeIdx={routeIdx}
               onFrom={setFrom}
@@ -495,6 +518,15 @@ export default function MapApp() {
           )}
           {panel.kind === 'mine' && (
             <MyReports mine={hz.mine} myPos={loc.pos} onClose={closePanel} onOpen={openHazard} onReport={openReport} />
+          )}
+          {panel.kind === 'layers' && (
+            <LayersPanel
+              filters={hz.filters}
+              counts={Object.fromEntries(TYPE_ORDER.map((t) => [t, hz.all.filter((h) => h.type === t && h.status !== 'resolved').length])) as Record<(typeof TYPE_ORDER)[number], number>}
+              osm={osm}
+              onChange={setFilters}
+              onClose={closePanel}
+            />
           )}
           {panel.kind === 'about' && <AboutPanel onClose={closePanel} onGetApp={showAppLinks() ? () => setPanelState({ kind: 'app' }) : undefined} />}
           {panel.kind === 'app' && <GetAppPanel onClose={closePanel} />}
