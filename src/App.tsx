@@ -5,6 +5,8 @@ import MapApp from './map/MapApp';
 import Toaster from './ui/Toaster';
 
 const DetectDemo = lazy(() => import('./pages/DetectDemo'));
+const DataPage = lazy(() => import('./pages/DataPage'));
+const ModeratePage = lazy(() => import('./pages/ModeratePage'));
 
 export default function App() {
   return (
@@ -16,6 +18,22 @@ export default function App() {
           element={
             <Suspense fallback={<div className="p-6 text-muted">Loading…</div>}>
               <DetectDemo />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/data"
+          element={
+            <Suspense fallback={<div className="p-6 text-muted">Loading…</div>}>
+              <DataPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/moderate"
+          element={
+            <Suspense fallback={<div className="p-6 text-muted">Loading…</div>}>
+              <ModeratePage />
             </Suspense>
           }
         />

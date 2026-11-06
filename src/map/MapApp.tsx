@@ -55,6 +55,14 @@ const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function initialView(): { center: LatLng; zoom: number } {
+  // links from the data and moderation pages: /?lat=16.3&lng=80.4&z=17
+  const q = new URLSearchParams(location.search);
+  const lat = Number(q.get('lat'));
+  const lng = Number(q.get('lng'));
+  if (q.has('lat') && q.has('lng') && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+    const z = Number(q.get('z'));
+    return { center: [lat, lng], zoom: Number.isFinite(z) && z >= 4 && z <= 19 ? z : 16 };
+  }
   try {
     const v = JSON.parse(localStorage.getItem(VIEW_KEY) || 'null');
     if (v && Number.isFinite(v.lat) && Number.isFinite(v.lng) && Number.isFinite(v.zoom)) return { center: [v.lat, v.lng], zoom: v.zoom };
