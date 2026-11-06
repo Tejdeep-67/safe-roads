@@ -1,9 +1,10 @@
 // GET /api/photos/:id -> the JPEG attached to a report
 import { stores } from './lib/stores.mjs';
+import { isReportId } from './lib/tiles.mjs';
 
 export default async (req, context) => {
   const id = context.params?.id || '';
-  if (!/^[0-9a-f-]{36}$/.test(id)) return new Response('not found', { status: 404 });
+  if (!isReportId(id)) return new Response('not found', { status: 404 });
   try {
     const photo = await stores().photos.get(id, { type: 'arrayBuffer' });
     if (!photo) return new Response('not found', { status: 404, headers: { 'cache-control': 'no-store' } });
