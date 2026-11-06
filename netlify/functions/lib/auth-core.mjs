@@ -8,6 +8,7 @@
 // Blob layout (store "safe-roads-users"):
 //   users/<userId>        -> { id, name, email, passwordHash, createdAt }
 //   emails/<sha256(email)> -> { userId }   (written with onlyIfNew, which keeps emails unique)
+import { isModerator } from './moderation-core.mjs';
 import { createHmac, randomBytes, randomUUID, scrypt as scryptCb, timingSafeEqual, createHash } from 'node:crypto';
 import { json, parseCookies, readJsonBody, rateLimit, sameOrigin } from './http.mjs';
 
@@ -118,7 +119,7 @@ export function validateLogin(body) {
 }
 
 export const emailKey = (email) => `emails/${createHash('sha256').update(email).digest('hex')}`;
-const publicUser = (u) => ({ id: u.id, name: u.name, email: u.email, createdAt: u.createdAt });
+const publicUser = (u, mods) => ({ id: u.id, name: u.name, email: u.email, createdAt: u.createdAt, moderator: isModerator(u, mods) });
 
 // ---------- session lookup (used by the hazards function too) ----------
 export async function getSessionUser(req, { users, secret, now = Date.now() }) {
@@ -142,7 +143,7 @@ export async function handleAuth(req, deps) {
 
   if (action === 'me' && req.method === 'GET') {
     const user = await getSessionUser(req, { users, secret, now });
-    return json(200, { user: user ? publicUser(user) : null });
+    return json(200, { user: user ? publicUser(user, deps.moderators) : null });
   }
 
   if (!['POST', 'DELETE'].includes(req.method)) return json(405, { error: 'Method not allowed.' }, { allow: 'GET, POST, DELETE' });
@@ -172,14 +173,14 @@ export async function handleAuth(req, deps) {
       if (!owner) {
         await users.setJSON(emailKey(email), { userId: user.id });
         await users.setJSON(`users/${user.id}`, user);
-        return json(201, { user: publicUser(user) }, { 'set-cookie': sessionCookie(issue(user, secret, now)) });
+        return json(201, { user: publicUser(user, deps.moderators) }, { 'set-cookie': sessionCookie(issue(user, secret, now)) });
       }
       // Without email verification we can't hide that an address is taken at sign-up,
       // so the message points to sign in. Login errors stay generic.
       return json(409, { error: 'Could not create an account with that email. If you already have one, sign in instead.' });
     }
     await users.setJSON(`users/${user.id}`, user);
-    return json(201, { user: publicUser(user) }, { 'set-cookie': sessionCookie(issue(user, secret, now)) });
+    return json(201, { user: publicUser(user, deps.moderators) }, { 'set-cookie': sessionCookie(issue(user, secret, now)) });
   }
 
   if (action === 'login' && req.method === 'POST') {
@@ -197,7 +198,7 @@ export async function handleAuth(req, deps) {
       return json(401, { error: 'Wrong email or password.' });
     }
     if (!(await verifyPassword(v.value.password, user.passwordHash))) return json(401, { error: 'Wrong email or password.' });
-    return json(200, { user: publicUser(user) }, { 'set-cookie': sessionCookie(issue(user, secret, now)) });
+    return json(200, { user: publicUser(user, deps.moderators) }, { 'set-cookie': sessionCookie(issue(user, secret, now)) });
   }
 
   if (action === 'me' && req.method === 'DELETE') {

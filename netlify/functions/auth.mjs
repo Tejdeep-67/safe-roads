@@ -3,6 +3,7 @@
 import { handleAuth } from './lib/auth-core.mjs';
 import { deleteReportsOf } from './lib/hazards-core.mjs';
 import { json } from './lib/http.mjs';
+import { moderatorSet } from './lib/moderation-core.mjs';
 import { secret, stores } from './lib/stores.mjs';
 
 export default async (req, context) => {
@@ -12,6 +13,7 @@ export default async (req, context) => {
       users: s.users,
       limits: s.limits,
       secret: secret(),
+      moderators: moderatorSet(process.env.MODERATOR_EMAILS),
       ip: context.ip,
       action: context.params?.action,
       onDeleteUser: (userId) => deleteReportsOf(s.hazards, s.photos, userId),
