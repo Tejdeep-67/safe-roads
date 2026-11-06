@@ -49,22 +49,28 @@ export function parseFeatures(data: unknown): RoadFeature[] {
 export const kindText: Record<Calming, string> = { bump: 'Speed bump', hump: 'Speed hump', table: 'Raised table', cushion: 'Speed cushion' };
 
 const cache = new Map<string, Promise<RoadFeature[]>>();
-export function fetchRoadFeatures(b: Bounds, signal?: AbortSignal): Promise<RoadFeature[]> {
+// One shared request per snapped box. Callers never abort it (a second caller may be waiting for the same answer);
+// a caller that has moved on simply ignores the result.
+export function fetchRoadFeatures(b: Bounds): Promise<RoadFeature[]> {
   const snapped = snapBounds(b);
   const key = boundsKey(snapped);
   const hit = cache.get(key);
   if (hit) return hit;
+  // the public server can be slow when it is busy: give up after 25 s instead of showing "loading" forever
+  const timeout = new AbortController();
+  const timer = setTimeout(() => timeout.abort(), 25000);
   const p = fetch(OVERPASS_URL, {
     method: 'POST',
     body: 'data=' + encodeURIComponent(buildQuery(snapped)),
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    signal,
+    signal: timeout.signal,
   })
     .then((r) => {
       if (!r.ok) throw new Error(`overpass ${r.status}`);
       return r.json();
     })
-    .then(parseFeatures);
+    .then(parseFeatures)
+    .finally(() => clearTimeout(timer));
   cache.set(key, p);
   p.catch(() => cache.delete(key));
   if (cache.size > 40) cache.delete(cache.keys().next().value as string);

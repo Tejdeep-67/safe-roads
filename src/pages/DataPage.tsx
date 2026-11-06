@@ -133,7 +133,7 @@ export default function DataPage() {
                 </div>
               </div>
               <h3 className="mb-1 mt-6 text-[14px] font-semibold">Hotspots</h3>
-              <p className="mb-2 text-[13px] text-muted">{stats.hotspot_rule}.</p>
+              <p className="mb-2 text-[13px] text-muted">A hotspot is: {stats.hotspot_rule}.</p>
               {stats.hotspots.length === 0 ? (
                 <p className="text-[14px] text-muted">No spot has two or more open reports yet.</p>
               ) : (

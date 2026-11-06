@@ -64,7 +64,7 @@ export default function ModeratePage() {
             return (
               <li key={h.id} className="rounded-2xl border border-line p-4">
                 <div className="flex gap-3">
-                  {img ? <img src={img} alt="" className="h-24 w-24 shrink-0 rounded-xl bg-sunken object-cover" loading="lazy" /> : <span className="h-24 w-24 shrink-0 rounded-xl bg-sunken" />}
+                  {img && <img src={img} alt="" className="h-24 w-24 shrink-0 rounded-xl bg-sunken object-cover" loading="lazy" />}
                   <div className="min-w-0 flex-1 text-[14px]">
                     <p className="font-medium">
                       {SEV_LABEL[h.severity]} {kindLabel(h.type).toLowerCase()}

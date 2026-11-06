@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Safe Roads",
   "short_name": "Safe Roads",
-  "description": "A simple map of potholes. Report one with a photo, see them on your route.",
+  "description": "A community map of road hazards. Report one with a photo, see them on your route.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

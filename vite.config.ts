@@ -21,7 +21,9 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'credentialless',
     },
-    // the API (sign-in, reports) needs the Netlify Functions: run `netlify dev` instead of `npm run dev`
+    // the API (sign-in, reports) needs the Netlify Functions: run `netlify dev`, or start the
+    // in-memory stand-in with `npm run dev:api` and let Vite proxy to it
+    proxy: { '/api': 'http://127.0.0.1:8788' },
   },
   test: {
     include: ['src/**/*.test.ts'],

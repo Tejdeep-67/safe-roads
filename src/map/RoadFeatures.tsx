@@ -26,7 +26,7 @@ export default function RoadFeatures({ enabled, onStatus }: Props) {
     }
     const g = L.layerGroup().addTo(map);
     layer.current = g;
-    let ctl: AbortController | null = null;
+    let seq = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const draw = (list: RoadFeature[]) => {
@@ -43,20 +43,21 @@ export default function RoadFeatures({ enabled, onStatus }: Props) {
 
     const load = async () => {
       if (map.getZoom() < MIN_ZOOM) {
+        seq++;
         g.clearLayers();
         status.current('zoom');
         return;
       }
-      ctl?.abort();
-      ctl = new AbortController();
+      const mine = ++seq;
       const b = map.getBounds();
       status.current('loading');
       try {
-        const list = await fetchRoadFeatures({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() }, ctl.signal);
+        const list = await fetchRoadFeatures({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+        if (mine !== seq) return; // the map moved on while this was loading
         draw(list);
         status.current('ok', list.length);
-      } catch (e) {
-        if ((e as Error).name !== 'AbortError') status.current('error');
+      } catch {
+        if (mine === seq) status.current('error');
       }
     };
     const soon = () => {
@@ -67,7 +68,7 @@ export default function RoadFeatures({ enabled, onStatus }: Props) {
     load();
     return () => {
       clearTimeout(timer);
-      ctl?.abort();
+      seq++; // anything still in flight is stale now
       map.off('moveend', soon);
       map.removeLayer(g);
       layer.current = null;

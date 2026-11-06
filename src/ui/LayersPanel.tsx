@@ -59,7 +59,7 @@ export default function LayersPanel({ filters, counts, osm, onChange, onClose }:
           Show fixed reports
         </Check>
       </fieldset>
-      <fieldset className="mt-3 border-t border-line pt-3">
+      <fieldset className="mt-4">
         <legend className="field-label">Other data</legend>
         <Check checked={filters.roadFeatures} onChange={(v) => onChange({ ...filters, roadFeatures: v })} hint={osmHint}>
           Road bumps from OpenStreetMap {osm.status === 'loading' && <Loader2 className="inline h-3.5 w-3.5 animate-spin" />}

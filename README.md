@@ -1,29 +1,38 @@
 # Safe Roads
 
-A simple map of potholes. Open it, see the potholes around you, tap **Report pothole** to add one with a photo, and check the potholes on your route before you drive.
+A community map of road hazards (potholes, waterlogging, broken road edges, open manholes, unmarked speed bumps). Open it, see what people reported around you, tap **Report hazard** to add one with a photo, confirm or close other people's reports, and check what is on your route before you drive. Councils, researchers and apps can download the same data as GeoJSON or CSV, free.
 
 **Live:** https://thesaferoads.netlify.app &nbsp;·&nbsp; **Code:** https://github.com/Tejdeep-67/safe-roads
 
-![Safe Roads on a phone: the map, a report with the detected pothole, and a pothole's details](docs/screenshots/phones.jpg)
+<p>
+  <img src="docs/screenshots/map-desktop.jpg" alt="The map on a desktop with a report open" width="62%" />
+  <img src="docs/screenshots/details-mobile.jpg" alt="A report on a phone, with the community check buttons" width="25%" />
+</p>
+
+<sub>The screenshots in this README come from a local dev server (`npm run dev:api`) with a handful of test reports I typed in myself, so there is something to look at. The live site has no sample or made-up reports.</sub>
+
+Version 4 (this one) turns it from "a map I report on" into something a city could use: the community checks reports instead of one person deciding, there is a moderator queue and an open data feed, and the made-up sample pins are gone.
 
 This started as a semester project where a Flask server ran a YOLOv8 model on uploaded photos. Version 2 moved the detection into the browser. For version 3 I redesigned the whole thing because it had too many pages and buttons: now it is one screen that works like Google Maps, with real accounts so every report belongs to someone.
 
 ## Using it
 
-- **The map is the home screen.** Pins are coloured by how bad the pothole is (yellow minor, orange moderate, red severe) and group into bubbles when you zoom out. Tap a pin to see its photo, who reported it and when, and how far it is from you.
+- **The map is the home screen.** Pins are coloured by how bad the hazard is (yellow minor, orange moderate, red severe) and group into bubbles when you zoom out. A dark ring around a pin means at least two people confirmed it. Faded pins are reports the community says were fixed (hidden unless you turn them on). Tap a pin to see its photo, how many people confirmed it and how far it is from you.
 - **Search** at the top finds places as you type. The ↱ button next to it opens **directions**.
-- **Report pothole** (bottom right): take a photo or pick one. The model looks for potholes on your phone and draws boxes around them, and picks a severity from the size (you can change it). The location comes from the photo's GPS, or your phone's GPS, or you place the pin on the map yourself. If the model finds nothing you can still report it, and you can also report without a photo.
-- **Directions**: from your location (or any place) to where you're going. It shows up to 3 routes from OSRM, how many potholes are within 30 m of each, and the list in the order you'll reach them. **Start** follows your GPS and warns you by voice and vibration 150 m before each pothole. **Demo drive** drives along the route by itself, for trying it at a desk.
-- **Account menu** (top right): sign in / create account, My reports (with delete), the detection demo, dark map, hide sample pins, about.
+- **Report hazard** (bottom right): take a photo or pick one, say what it is (pothole, waterlogging, broken road edge, open manhole, unmarked speed bump) and how bad. For potholes the model looks at the photo on your phone and draws boxes; the severity is a guess from the size and you can change it. The location comes from the photo's GPS, or your phone's GPS, or you place the pin on the map yourself. You can also report without a photo.
+- **Community check.** On someone else's report you can say **Still there** or **It's fixed**, or **Report a problem** (not real, wrong place, spam, offensive). The reporter counts as the first confirmation; a second person makes it *verified*. Two people saying *fixed* (and more of them than people saying *still there*) mark it fixed. Three different people flagging a report hide it until a moderator has looked. You can't vote on your own report.
+- **Layers & filters** (account menu): choose which kinds to show, only verified reports, show fixed ones, and an optional **Road bumps from OpenStreetMap** layer. That layer is real third-party data (speed bumps, humps and tables that mapmakers recorded in OpenStreetMap, ODbL), shown as grey squares so nobody confuses it with community reports. Coverage in OpenStreetMap varies a lot by area.
+- **Directions**: from your location (or any place) to where you're going. It shows up to 3 routes from OSRM, how many open reports are within 30 m of each, and the list in the order you'll reach them. **Start** follows your GPS and warns you by voice and vibration 150 m before each one. **Demo drive** drives along the route by itself, for trying it at a desk.
+- **Data for authorities** (account menu, or `/data`): live numbers (reports, verified, fixed, per kind and severity, per week, hotspots) and a download builder for GeoJSON, CSV and JSON. See [docs/API.md](docs/API.md).
+- **Moderation** (`/moderate`, only for accounts listed in `MODERATOR_EMAILS`): the queue of flagged reports with approve, remove, mark fixed and reopen.
+- **Account menu** (top right): sign in / create account, My reports (with delete), the detection demo, dark map, layers, about.
 
-Looking at the map needs no account. Reporting does, so that only the person who reported something can delete it.
+Looking at the map needs no account. Reporting and voting do, so that only the person who reported something can delete it and one person can't vote twice.
 
 <p>
-  <img src="docs/screenshots/directions-desktop.jpg" alt="Directions on desktop with the potholes on the route listed" width="70%" />
-  <img src="docs/screenshots/drive-mobile.jpg" alt="Drive mode warning about the next pothole" width="26%" />
+  <img src="docs/screenshots/layers-mobile.jpg" alt="Layers and filters on a phone" width="25%" />
+  <img src="docs/screenshots/data-desktop.jpg" alt="The open data page" width="62%" />
 </p>
-
-The faded pins around Guntur and Vijayawada are **sample data** I placed on real roads so the map isn't empty on the first visit. They say "sample" when you open them and can be hidden from the menu.
 
 ## Android app
 
@@ -71,10 +80,14 @@ I didn't want a fake login or a paid auth service, and I wanted it to run on Net
 | `POST /api/auth/logout` | clears the cookie |
 | `GET /api/auth/me` | the signed-in user, or `null` |
 | `DELETE /api/auth/me` | `{password}` → deletes the account and its reports |
-| `GET /api/hazards` | all reports (anyone) · `?mine=1` only mine |
-| `POST /api/hazards` | new report (signed in): `{lat, lng, severity, confidence?, potholes?, source, note?, photo?}` |
+| `GET /api/hazards` | visible reports (anyone) · `?bbox=minLng,minLat,maxLng,maxLat` · `?mine=1` only mine · `?stale=1` also old unconfirmed ones |
+| `POST /api/hazards` | new report (signed in): `{lat, lng, type?, severity, confidence?, potholes?, source, note?, photo?}` |
 | `DELETE /api/hazards/:id` | delete my own report |
+| `POST /api/hazards/:id/vote` · `DELETE …/vote` | `{vote: confirm \| fixed \| flag, reason?}` · take it back |
 | `GET /api/photos/:id` | the photo of a report |
+| `GET /api/feed/geojson` · `/csv` · `/json` | open data feed with filters, CORS, ETag, rate limited (see [docs/API.md](docs/API.md)) |
+| `GET /api/stats` | counts, weekly trend, hotspots |
+| `GET/POST /api/moderation[/:id]` | moderators only |
 | `GET /api/health` | is the API up, can it reach Blobs, is sign-in configured |
 
 ### What's stored in Netlify Blobs
@@ -82,13 +95,16 @@ I didn't want a fake login or a paid auth service, and I wanted it to run on Net
 ```
 safe-roads-users     users/<id>            {id, name, email, passwordHash, createdAt}
                      emails/<sha256(email)> {userId}          (written with onlyIfNew = unique emails)
-safe-roads-hazards   reports               [ {id, lat, lng, severity, confidence, potholes, source,
-                                              note, createdAt, ownerId, ownerName, hasPhoto}, ... ]
-safe-roads-photos    <reportId>            the JPEG
+safe-roads-hazards   t/<latIdx>_<lngIdx>   [ {id, lat, lng, type, severity, confidence, potholes, source, note,
+                                              createdAt, updatedAt, ownerId, hasPhoto, status,
+                                              votes: {confirm: [userId], fixed: [userId], flag: [{u, r}]}}, ... ]
+safe-roads-photos    <reportId>            the JPEG (metadata stripped)
 safe-roads-limits    rl/<bucket>/<hash>    {start, count}
 ```
 
-All stores use strong consistency, so a report is visible to the next request right away. The reports list is updated with the etag (`onlyIfMatch`) and retried if two people save at the same moment. Photos are shrunk in the browser first (max 1024 px, JPEG ~0.7, under 350 KB).
+Reports live in **map tiles**: one blob per 0.1° square (about 11 km, roughly one city), with at most 1500 reports each. A report id is `<latIdx>_<lngIdx>.<uuid>`, so any id tells the server which tile to open. That keeps each write small, lets the feed read only the tiles a bounding box touches, and means two people reporting in different cities never fight over the same etag. Reports from version 3 (one big `reports` blob) are moved into tiles, photos included, on the first read; the live site had none when I checked.
+
+All stores use strong consistency, so a report is visible to the next request right away. A tile is updated with the etag (`onlyIfMatch`) and retried if two people save at the same moment. Votes are stored as user ids inside the report on the server; the public API only shows counts. Photos are shrunk in the browser first (max 1024 px, JPEG ~0.7, under 350 KB), and the server strips EXIF (the phone's GPS position, camera model, time), XMP and comments from every photo before storing it.
 
 ## How the detection works
 
@@ -128,7 +144,7 @@ npm test                      # vitest (detection + route maths) and node tests 
 npm run build                 # type-check + production build into dist/
 ```
 
-`npm run dev` also works, but then there's no API: the map shows the sample pins and says the server can't be reached, and sign-in/reporting are paused.
+`npm run dev` also works, but then there's no API and the map says the server can't be reached. For a quick local run without the Netlify CLI, start `npm run dev:api` in one terminal (the same handlers with in-memory stores, empty on start; the moderator account is `mod@example.com`) and `npm run dev` in another: Vite proxies `/api` to it.
 
 ### Flask backend (optional)
 
@@ -156,7 +172,7 @@ python get_test_data.py && python evaluate.py --model ../public/models/pothole-y
 
 ## Deploying on Netlify
 
-`netlify.toml` has everything: build `npm run build`, publish `dist`, functions in `netlify/functions`. Netlify Blobs needs no setup. The one thing to add is an environment variable **`SESSION_SECRET`** (a long random string) under Site configuration → Environment variables; without it the map works but sign-in is switched off.
+`netlify.toml` has everything: build `npm run build`, publish `dist`, functions in `netlify/functions`. Netlify Blobs needs no setup. Environment variables (Site configuration → Environment variables): **`SESSION_SECRET`** (a long random string; without it the map works but sign-in is switched off) and **`MODERATOR_EMAILS`** (comma-separated emails of the accounts that may use `/moderate`; leave it out and nobody is a moderator).
 
 ## Project structure
 
@@ -165,11 +181,13 @@ src/
   map/         MapApp (the one screen), Leaflet setup, pins + clustering
   ui/          search bar, panels (bottom sheet / side panel), report flow, directions, drive mode, account menu
   auth/        AuthProvider (talks to /api/auth)
-  hazards/     shared store client, sample data
+  hazards/     shared store client, hazard kinds, map filters, trust text
   detection/   worker, ONNX session, post-processing (decode, NMS, masks), tracker, drawing
   geo/         haversine, point-to-route distance, search + routing calls, drive mode, my location
-  pages/       DetectDemo
-netlify/functions/   auth, hazards, photos, health + lib/ (the logic, tested in netlify/tests)
+  pages/       DetectDemo, DataPage (/data), ModeratePage (/moderate)
+  lib/         api wrapper, OpenStreetMap (Overpass) road features, feed URL builder
+netlify/functions/   auth, hazards, photos, feed, stats, moderation, health + lib/ (the logic, tested in netlify/tests)
+dev/           api-server.mjs: in-memory stand-in for the functions, for local runs and screenshots
 backend/       optional Flask API with the PyTorch model, pytest
 model/         ONNX export, ONNX check, evaluation scripts and results
 public/        ONNX model, demo photos and video, icons, service worker (sw.js)
@@ -183,14 +201,19 @@ assets/        source images for the app icon and splash
 - The model misses many potholes (recall ~0.28), especially small or far ones, and is worse at night or in rain.
 - Severity is a size guess, not depth.
 - Phone GPS is off by 5-15 m, so pins are approximate.
-- No email verification or password reset yet (that needs an email service). No moderation of reports either.
+- No email verification or password reset yet (that needs an email service).
+- Votes are not location-checked: "verified" means two different accounts agree, not that someone stood at the spot. One person with several accounts could still fake agreement; the rate limits and the stricter limits for new accounts slow that down, they don't stop it. Moderators are the backstop.
+- Moderation depends on at least one moderator existing (`MODERATOR_EMAILS`) and looking at the queue.
+- There is no way to know how much of a city is covered: no reports in an area means nobody reported there.
+- The OpenStreetMap bumps layer depends on the public Overpass server (it can be slow or busy; the app gives up after 25 s and says so) and on how well your area is mapped.
+- A hazard's type and severity are the reporter's word. The detection model only helps for potholes.
 - Sign-out clears the cookie; a stolen token would stay valid until it expires, since tokens aren't stored on the server.
 - The rate-limit counters aren't atomic, so two requests at the exact same moment can both get through. Fine for slowing down spam and password guessing, not a hard quota.
 - OpenFreeMap, Photon, Nominatim, OSRM and the OSM tile servers are free public services with fair-use limits.
 - Old phones without WebGPU run the model at a few frames per second.
 - The Android app is a sideloaded APK, so Play Protect may show a warning the first time (it doesn't know the developer). It also needs internet to open.
 
-Next I'd like to add password reset by email, a "confirmed by N people" filter for alerts, and offline caching of a route's potholes.
+Next I'd like to add password reset by email, alerts only for verified reports, and offline caching of a route's hazards.
 
 ## Credits
 
@@ -198,9 +221,10 @@ Next I'd like to add password reset by email, a "confirmed by N people" filter f
 - Demo video: [Rainwater-Filled Potholes on a Community Road](https://commons.wikimedia.org/wiki/File:Rainwater-Filled_Potholes_on_a_Community_Road.webm) by Knowledge and philosophy (CC BY-SA 4.0), trimmed.
 - Test data: [Potholes Detection](https://universe.roboflow.com/project-ssayl/potholes-detection-d4rma) (Roboflow Universe, CC BY 4.0).
 - Training data of the model: [Pothole Image Segmentation Dataset](https://www.kaggle.com/datasets/farzadnekouei/pothole-image-segmentation-dataset) (Kaggle).
+- Road bump layer: speed bumps, humps and tables from OpenStreetMap via the Overpass API, © OpenStreetMap contributors (ODbL).
 - Map data © OpenStreetMap contributors. Base map by [OpenFreeMap](https://openfreemap.org) (OpenMapTiles schema, drawn with MapLibre; plain OSM tiles as a fallback). Place search by Photon (komoot) and Nominatim, routing by OSRM.
 - Built with React, TypeScript, Vite, Tailwind CSS, Leaflet, MapLibre, ONNX Runtime Web and Ultralytics YOLOv8. Android app with Capacitor.
 
 ## License
 
-My code is under the [MIT License](LICENSE). The things I didn't make keep their own licences: the model weights come from Ultralytics YOLOv8, which is AGPL-3.0, and from a dataset with its own terms; the demo photos, demo video and test data are under the CC licences listed in Credits; map data is © OpenStreetMap contributors (ODbL).
+My code is under the [MIT License](LICENSE). The things I didn't make keep their own licences: the model weights come from Ultralytics YOLOv8, which is AGPL-3.0, and from a dataset with its own terms; the demo photos, demo video and test data are under the CC licences listed in Credits; map data is © OpenStreetMap contributors (ODbL). The community reports in the open data feed are offered under CC BY 4.0, see [docs/API.md](docs/API.md).

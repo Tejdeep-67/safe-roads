@@ -181,7 +181,8 @@ export function computeStats(reports, f, now = Date.now()) {
   const by = (key, keys) => Object.fromEntries(keys.map((k) => [k, rows.filter((r) => r[key] === k).length]));
   const weekMs = 7 * 86400000;
   const weeks = [];
-  const startOfWeek = Math.floor(now / weekMs) * weekMs; // weeks start Thursday UTC (epoch), fine for a trend
+  const monday = 4 * 86400000; // the epoch was a Thursday; shift so weeks run Monday to Sunday (UTC)
+  const startOfWeek = Math.floor((now - monday) / weekMs) * weekMs + monday;
   for (let i = 11; i >= 0; i--) {
     const from = startOfWeek - i * weekMs;
     weeks.push({
